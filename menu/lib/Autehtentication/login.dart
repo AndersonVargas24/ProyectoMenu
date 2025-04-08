@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/signup.dart';
-
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 
 class LoginMenu extends StatefulWidget {
@@ -11,7 +13,7 @@ class LoginMenu extends StatefulWidget {
 }
 
 class _LoginMenuState extends State<LoginMenu> {
- final username = TextEditingController();
+ final email = TextEditingController();
   final password = TextEditingController();
 
   bool isvisible = false;
@@ -40,6 +42,7 @@ class _LoginMenuState extends State<LoginMenu> {
                     fit: BoxFit.cover,  // Ajusta la imagen al tamaño del contenedor                                       
                   )
               ),
+              Text("¡Pantalla de Login cargada!", style: TextStyle(fontSize: 20)),
                   const SizedBox(height: 1),
 
                   //user
@@ -52,17 +55,19 @@ class _LoginMenuState extends State<LoginMenu> {
                       // ignore: deprecated_member_use
                       color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
                     child: TextFormField(
-                      controller: username,
+                      controller: email,
                       validator: (value) {
-                        if (value!.isEmpty) {
-                          return "Por favor ingrese su nombre de usuario";
+                         if (value == null || value.isEmpty) {
+                          return "Por favor ingrese su correo";
+                        } else if (!value.contains('@')) {
+                          return "Correo inválido";
                         }
                         return null;
                       },
                       decoration: const InputDecoration(
-                        icon: Icon(Icons.person),
+                        icon: Icon(Icons.email),
                         border: InputBorder.none,
-                        hintText: "Username",
+                        hintText: "Correo electrónico",
                       ),
                     ),
                   ),
@@ -108,11 +113,44 @@ class _LoginMenuState extends State<LoginMenu> {
                       color: const Color.fromARGB(255, 16, 60, 134) 
                     ),
                     child: TextButton(
-                      onPressed: () {
-                        if (formkey.currentState!.validate()) {
-                          //navegar a la pantalla de inicio
-                        }
-                      }, 
+                      onPressed: () async {
+                          if (formkey.currentState!.validate()) {
+                            try {
+                              // Mostrar indicador de carga (opcional)
+                              print("🔐 Iniciando sesión...");
+                              
+                              // Login con Firebase
+                              await FirebaseAuth.instance.signInWithEmailAndPassword(
+                                email: email.text.trim(),
+                                password: password.text.trim(),
+                              );
+
+                              // Si llega aquí, login exitoso
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("✅ Bienvenido")),
+                              );
+
+                              // TODO: Navegar a la pantalla principal o dashboard
+                              print("🎉 Login exitoso, redirigiendo...");
+                              Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const ChefWaiter()),
+                          );
+
+                            } on FirebaseAuthException catch (e) {
+                              String errorMsg = "Error al iniciar sesión";
+                              if (e.code == 'user-not-found') {
+                                errorMsg = 'No existe un usuario con este correo';
+                              } else if (e.code == 'wrong-password') {
+                                errorMsg = 'Contraseña incorrecta';
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text("❌ $errorMsg")),
+                              );
+                            }
+                          }
+                        },
                     child: Text("LOGIN", style: TextStyle(color: Colors.white ),
                     )),
                     ),

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "860675850004",
+    "project_id": "menuinteractivo-e203f",
+    "storage_bucket": "menuinteractivo-e203f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:860675850004:android:b6d1352e881bafda7d0c01",
+        "android_client_info": {
+          "package_name": "com.example.menu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAuvY3mdlR0K7Xc8Jdc3Mo5j9wp4JhFZsA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
