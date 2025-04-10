@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:menu/WaiterDashboard/CrearComanda.dart';
+import 'package:menu/WaiterDashboard/ComandaView.dart';
+import 'package:menu/WaiterDashboard/SeccionMenu.dart';
+import 'package:menu/WaiterDashboard/SeccionBebidas.dart';
 
 class Principalwaiter extends StatefulWidget {
   const Principalwaiter({super.key});
@@ -8,27 +12,51 @@ class Principalwaiter extends StatefulWidget {
 }
 
 class _PrincipalwaiterState extends State<Principalwaiter> {
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Pantalla Principal Mesero"),),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text("¡Bienvenido Mesero!", style: TextStyle(fontSize: 20)),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: () {
-                  // Acción al presionar el botón
-                },
-                child: const Text("Acción del Chef"),
-              ),
-            ],
-          ),
+  int _selectedIndex = 0;
+  final List<Widget> _pages = <Widget>[
+    const SeccionMenu(),
+    const SeccionBebidas(),
+    const ViewComanda(),
+    const SeccionCreateComanda(),
+  ];
 
+  void _onItemTapped (int index) {
+    setState(() {
+      _selectedIndex = index;
+      Navigator.pop (context); // Cierra el Drawer después de seleccionar una opción
+    });
+  }
+  @override
+ Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: Text("Dashboard Mesero")),
+      drawer: Drawer(
+        child: ListView(
+          children: [
+            DrawerHeader(
+              child: Text("Menú de Opciones"),
+              decoration: BoxDecoration(color: const Color.fromARGB(255, 131, 178, 216)),
+            ),
+            ListTile(
+              title: Text("Menú"),
+              onTap: () => _onItemTapped(0),
+            ),
+            ListTile(
+              title: Text("Bebidas"),
+              onTap: () => _onItemTapped(1),
+            ),
+            ListTile(
+              title: Text("Comandas"),
+              onTap: () => _onItemTapped(2),
+            ),
+            ListTile(
+              title: Text("Crear Comanda"),
+              onTap: () => _onItemTapped(3),
+            ),
+          ],
+        ),
       ),
+      body: _pages[_selectedIndex],
     );
   }
 }

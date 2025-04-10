@@ -13,40 +13,54 @@ class _ChefWaiterState extends State<ChefWaiter> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Selecciona tu rol")),
-  
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
+      appBar: AppBar(title: const Text("Selecciona tu rol")),
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Imagen 1
+            // Imagen para CHEF
             GestureDetector(
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const Principalchef()),
                 );
               },
-              child: Image.asset(
-                'lib/assets/chef.png',
-                width: 200,
-                height: 200,
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.blue, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Image.asset(
+                  'lib/assets/chef.png', // Asegúrate que la imagen esté en ese path
+                  width: 220,
+                  height: 220,
+                ),
               ),
             ),
-            const SizedBox(height: 40),
-            // Imagen 2
+
+            // Imagen para MESERO
             GestureDetector(
               onTap: () {
-                Navigator.push(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const Principalwaiter()),
                 );
               },
-              child: Image.asset(
-                'lib/assets/Waiter.png',
-                width: 200,
-                height: 200,
+              child: Container(
+                margin: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.blue, width: 2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Image.asset(
+                  'lib/assets/waiter.png',
+                  width: 220,
+                  height: 220
+                ),
               ),
             ),
           ],

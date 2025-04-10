@@ -42,8 +42,7 @@ class _LoginMenuState extends State<LoginMenu> {
                     fit: BoxFit.cover,  // Ajusta la imagen al tamaño del contenedor                                       
                   )
               ),
-              Text("¡Pantalla de Login cargada!", style: TextStyle(fontSize: 20)),
-                  const SizedBox(height: 1),
+              
 
                   //user
                   Container(
