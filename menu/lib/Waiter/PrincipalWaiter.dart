@@ -15,9 +15,8 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
   int _selectedIndex = 0;
   final List<Widget> _pages = <Widget>[
     const SeccionMenu(),
-    const SeccionBebidas(),
+    const SeccionBebidas(),   
     const ViewComanda(),
-    const SeccionCreateComanda(),
   ];
 
   void _onItemTapped (int index) {
@@ -35,7 +34,7 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
           children: [
             DrawerHeader(
               child: Text("Menú de Opciones"),
-              decoration: BoxDecoration(color: const Color.fromARGB(255, 131, 178, 216)),
+              decoration: BoxDecoration(color: Colors.blue),
             ),
             ListTile(
               title: Text("Menú"),
@@ -49,10 +48,7 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
               title: Text("Comandas"),
               onTap: () => _onItemTapped(2),
             ),
-            ListTile(
-              title: Text("Crear Comanda"),
-              onTap: () => _onItemTapped(3),
-            ),
+           
           ],
         ),
       ),
