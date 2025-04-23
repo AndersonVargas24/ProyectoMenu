@@ -1,21 +1,21 @@
 {
   "project_info": {
-    "project_number": "860675850004",
-    "project_id": "menuinteractivo-e203f",
-    "storage_bucket": "menuinteractivo-e203f.firebasestorage.app"
+    "project_number": "261009986729",
+    "project_id": "menuinteractivo2",
+    "storage_bucket": "menuinteractivo2.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:860675850004:android:b6d1352e881bafda7d0c01",
+        "mobilesdk_app_id": "1:261009986729:android:413793f9133df4c69a85b8",
         "android_client_info": {
-          "package_name": "com.example.menu"
+          "package_name": "com.andenasis.menuapp"
         }
       },
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAuvY3mdlR0K7Xc8Jdc3Mo5j9wp4JhFZsA"
+          "current_key": "AIzaSyCVZFE9sICRvQVdI1dIUP5ute7t8gSOY6I"
         }
       ],
       "services": {

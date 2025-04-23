@@ -1,4 +1,4 @@
-package com.example.menu
+package com.andenasis.menuapp
 
 import io.flutter.embedding.android.FlutterActivity
 

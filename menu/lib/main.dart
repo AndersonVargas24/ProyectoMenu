@@ -3,12 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/firebase_options.dart';
 
-Future<void> main() async {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Firebase
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-);
+  try {
+    if (Firebase.apps.isEmpty) {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+    }
+  } catch (e) {
+    print('Firebase init error: $e');
+  }
+
   runApp(const MyApp());
 }
 
