@@ -34,11 +34,17 @@ class MenuChef extends StatelessWidget {
                     ? Image.asset(plato['imagen'], width: 50, height: 50)
                     : const Icon(Icons.image, size: 50),
                 title: Text(plato['nombre']),
-                subtitle: Text('Precio: \$${plato['precio']}'),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Precio: \$${plato['precio']}'),
+                    Text('Descripción: ${plato['descripcion']}'),
+                  ],
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.edit),
                   onPressed: () {
-                    // Aquí iría la lógica para editar el plato
+                    // Lógica para editar el plato
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -55,7 +61,6 @@ class MenuChef extends StatelessWidget {
     );
   }
 }
-
 class EditarPlatoPage extends StatelessWidget {
   final String platoId;
 
