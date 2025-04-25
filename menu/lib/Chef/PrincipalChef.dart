@@ -1,145 +1,75 @@
 import 'package:flutter/material.dart';
+import 'package:menu/dashboardChef/CreacionMenu.dart';
+import 'package:menu/dashboardChef/HistorialComanda.dart';
+import 'package:menu/dashboardChef/Inventario.dart';
+import 'package:menu/dashboardChef/ViewPlato.dart';
+import 'package:menu/dashboardChef/MenuChef.dart';
+import 'package:menu/dashboardChef/ComandaChef.dart';
+import 'Package:menu/dashboardChef/BebidaChef.dart';
 
-class Principalchef extends StatefulWidget {
-  const Principalchef({super.key});
+class PrincipalChef extends StatefulWidget {
+  const PrincipalChef({super.key});
 
   @override
-  State<Principalchef> createState() => _PrincipalchefState();
+  State<PrincipalChef> createState() => _PrincipalChefState();
 }
 
-class _PrincipalchefState extends State<Principalchef> {
+class _PrincipalChefState extends State<PrincipalChef> {
+  int _selectedIndex = 0;
+  final List<Widget> _pages = <Widget>[
+    const MenuChef(),
+    const BebidaChef(),
+    const CreacionMenu(),
+    const ComandaChef(),
+    const HistorialComanda(),
+    const Inventario(),
+    const ViewPlato(),
+  ];
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+      Navigator.pop(context); // Cierra el Drawer después de seleccionar una opción
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 207, 206, 206),
-      appBar: AppBar(
-        backgroundColor: const Color.fromARGB(255, 207, 206, 209),
-        elevation: 0,
-        title: const Row(
+      appBar: AppBar(title: const Text("Dashboard Chef")),
+      drawer: Drawer(
+        child: ListView(
           children: [
-            Icon(Icons.restaurant_menu, color: Colors.white),
-            SizedBox(width: 8),
-            Text("CHEF", style: TextStyle(color: Colors.white)),
-          ],
-        ),
-        actions: const [
-          Padding(
-            padding: EdgeInsets.only(right: 16),
-            child: Icon(Icons.menu, color: Colors.white),
-          ),
-        ],
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(40)),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              "Gestión de Pedidos",
-              style: TextStyle(
-                fontSize: 22,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+            DrawerHeader(
+              child: Text("Menú de Opciones"),
+              decoration: BoxDecoration(color: Colors.blue),
             ),
-            const SizedBox(height: 4),
-            const Text(
-              "Ver y administrar todos los pedidos",
-              style: TextStyle(fontSize: 14, color: Colors.white70),
+            ListTile(
+              title: Text("Menú"),
+              onTap: () => _onItemTapped(0),
             ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                // Acción de nuevo pedido
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blueAccent,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                child: Text(
-                "Comandas",
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
+            ListTile(
+              title: Text("Bebidas"),
+              onTap: () => _onItemTapped(1),
             ),
-            const SizedBox(height: 20),
-            TextField(
-              decoration: InputDecoration(
-                hintText: "Busca por mesero, mesa o plato.etc",
-                prefixIcon: const Icon(Icons.search),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(horizontal: 20),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide.none,
-                ),
-              ),
+            ListTile(
+              title: Text("Crear Plato o Bebida"),
+              onTap: () => _onItemTapped(2),
             ),
-            const SizedBox(height: 20),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      "Mesa",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),            
-                  Expanded(
-                    child: Text(
-                      "Mesero",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      "Estado",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      "Hora",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                  Expanded(
-                    child: Text(
-                      "Acciones",
-                      style: TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
+            ListTile(
+              title: Text("Comandas"),
+              onTap: () => _onItemTapped(3),
             ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
+            ListTile(
+              title: Text("Historial de Comandas"),
+              onTap: () => _onItemTapped(4),
             ),
+            ListTile(
+              title: Text("Inventario"),
+              onTap: () => _onItemTapped(5),
+            ),  
           ],
         ),
       ),
+      body: _pages[_selectedIndex],
     );
   }
 }

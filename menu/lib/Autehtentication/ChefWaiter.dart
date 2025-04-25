@@ -23,7 +23,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
               onTap: () {
                 Navigator.pushReplacement(
                   context,
-                  MaterialPageRoute(builder: (context) => const Principalchef()),
+                  MaterialPageRoute(builder: (context) => const PrincipalChef()),
                 );
               },
               child: Container(
