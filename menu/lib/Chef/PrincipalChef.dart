@@ -22,7 +22,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
     const CreacionMenu(),
     const ComandaChef(),
     const HistorialComanda(),
-    const Inventario(),
+    Inventario(),
     const ViewPlato(),
   ];
   void _onItemTapped(int index) {
