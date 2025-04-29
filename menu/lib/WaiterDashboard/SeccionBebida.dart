@@ -1,8 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-class SeccionMenu extends StatelessWidget {
-  const SeccionMenu({super.key});
+class SeccionBebida extends StatelessWidget {
+  const SeccionBebida({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -14,7 +14,7 @@ class SeccionMenu extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('menu')
-        .where('tipo', isEqualTo: 'Plato')
+        .where('tipo', isEqualTo: 'Bebida')
         .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -22,7 +22,7 @@ class SeccionMenu extends StatelessWidget {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No hay platos disponibles"));
+            return const Center(child: Text("No hay Bebidas disponibles"));
           }
 
           var platos = snapshot.data!.docs;
@@ -48,7 +48,7 @@ class SeccionMenu extends StatelessWidget {
                   onPressed: () {
                     // Aquí iría la lógica para añadir el plato a la comanda
                     ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Plato ${plato['nombre']} añadido a la comanda')),
+                      SnackBar(content: Text('Bebida ${plato['nombre']} añadido a la comanda')),
                     );
                   },
                 ),
