@@ -4,6 +4,34 @@ import 'package:flutter/material.dart';
 class MenuChef extends StatelessWidget {
   const MenuChef({super.key});
 
+  // Función para eliminar un plato
+  void _eliminarPlato(BuildContext context, String platoId) async {
+    bool confirmacion = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content: const Text('¿Estás seguro de que deseas eliminar este plato?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmacion) {
+      await FirebaseFirestore.instance.collection('menu').doc(platoId).delete();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Plato eliminado correctamente')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -13,7 +41,9 @@ class MenuChef extends StatelessWidget {
         foregroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('menu').snapshots(),
+        stream: FirebaseFirestore.instance.collection('menu')
+        .where('tipo', isEqualTo: 'Plato')
+        .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -41,17 +71,28 @@ class MenuChef extends StatelessWidget {
                     Text('Descripción: ${plato['descripcion']}'),
                   ],
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () {
-                    // Lógica para editar el plato
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditarPlatoPage(platoId: plato.id),
-                      ),
-                    );
-                  },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () {
+                        // Navegar a página de edición
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditarPlatoPage(platoId: plato.id),
+                          ),
+                        );
+                      },
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      onPressed: () {
+                        _eliminarPlato(context, plato.id);
+                      },
+                    ),
+                  ],
                 ),
               );
             },
@@ -61,6 +102,7 @@ class MenuChef extends StatelessWidget {
     );
   }
 }
+
 class EditarPlatoPage extends StatelessWidget {
   final String platoId;
 
@@ -81,7 +123,7 @@ class EditarPlatoPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
 
-          if (!snapshot.hasData) {
+          if (!snapshot.hasData || !snapshot.data!.exists) {
             return const Center(child: Text("No se pudo cargar el plato"));
           }
 

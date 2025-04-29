@@ -34,7 +34,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Dashboard Chef")),
+      appBar: AppBar(title: const Text("Chef")),
       drawer: Drawer(
         child: ListView(
           children: [
