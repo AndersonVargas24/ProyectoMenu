@@ -11,7 +11,7 @@ class _ViewPlatoState extends State<ViewPlato> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder(
-      color: Colors.red,
+      color: Color.fromARGB(255, 145, 117, 115),
       fallbackHeight: 200,
       fallbackWidth: 200,
       strokeWidth: 2,
