@@ -2,6 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:menu/Chef/PrincipalChef.dart';
+import 'package:menu/dashboardChef/BebidaChef.dart';
+import 'package:menu/dashboardChef/MenuChef.dart';
 
 class CreacionMenu extends StatefulWidget {
   const CreacionMenu({super.key});
@@ -130,6 +134,19 @@ class _CreacionMenuState extends State<CreacionMenu> {
     );
   }
 
+  Future<String?> _subirImagenAStorage(File imagen) async {
+    try {
+      final nombreArchivo = '${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storageRef = FirebaseStorage.instance.ref().child('menu/$nombreArchivo');
+      final uploadTask = await storageRef.putFile(imagen);
+      final url = await uploadTask.ref.getDownloadURL();
+      return url;
+    } catch (e) {
+      print('Error al subir imagen: $e');
+      return null;
+    }
+  }
+
   Future<void> _subirPlato() async {
     String nombre = nombreController.text.trim();
     String precio = precioController.text.trim();
@@ -144,19 +161,33 @@ class _CreacionMenuState extends State<CreacionMenu> {
     }
 
     try {
+      String? urlImagen;
+
+      if (imagenDesdeDispositivo != null) {
+        urlImagen = await _subirImagenAStorage(imagenDesdeDispositivo!);
+      } else {
+        urlImagen = imagenSeleccionada;
+      }
+
       await FirebaseFirestore.instance.collection('menu').add({
         'nombre': nombre,
         'precio': double.tryParse(precio) ?? 0,
         'descripcion': descripcion,
         'tipo': tipo,
-        'imagen': imagenSeleccionada ?? '', // Guardamos solo si es asset
+        'imagen': urlImagen ?? '',
         'fechaCreacion': FieldValue.serverTimestamp(),
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Plato subido exitosamente')),
       );
-      Navigator.pop(context);
+      if (tipo == 'Bebida') {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const BebidaChef()));
+      } else {
+        Navigator.pushReplacement(context,
+            MaterialPageRoute(builder: (context) => const MenuChef()));
+      }
     } catch (e) {
       print('Error al subir: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -268,25 +299,26 @@ class _CreacionMenuState extends State<CreacionMenu> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pop(context);
+                    Navigator.pushReplacement(context,
+                        MaterialPageRoute(builder: (context) => const PrincipalChef()));
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 51, 50, 115),
+                    backgroundColor: const Color.fromARGB(255, 208, 208, 233),
                     padding: const EdgeInsets.symmetric(horizontal: 25),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text('CANCELAR'),
+                  child: const Text('  CANCELAR  '),
                 ),
                 ElevatedButton(
                   onPressed: _subirPlato,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 51, 50, 115),
+                    backgroundColor: const Color.fromARGB(255, 208, 208, 233),
                     padding: const EdgeInsets.symmetric(horizontal: 25),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text('SUBIR'),
+                  child: const Text('SUBIR PLATO'),
                 ),
               ],
             )

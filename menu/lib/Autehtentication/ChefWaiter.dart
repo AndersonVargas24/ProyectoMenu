@@ -30,7 +30,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue, width: 2),
+                  border: Border.all(color: const Color.fromARGB(255, 2, 2, 2), width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Image.asset(
@@ -53,7 +53,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
                 margin: const EdgeInsets.all(16),
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  border: Border.all(color: Colors.blue, width: 2),
+                  border: Border.all(color: const Color.fromARGB(255, 2, 2, 2), width: 2),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Image.asset(

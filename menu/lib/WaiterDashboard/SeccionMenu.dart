@@ -32,9 +32,11 @@ class SeccionMenu extends StatelessWidget {
             itemBuilder: (context, index) {
               var plato = platos[index];
               return ListTile(
-                leading: plato['imagen'] != ''
-                    ? Image.asset(plato['imagen'], width: 50, height: 50)
-                    : const Icon(Icons.image, size: 50),
+                      leading: plato['imagen'] != ''
+                    ? (plato['imagen'].toString().startsWith('http')
+                      ? Image.network(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover)
+                      : Image.asset(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover))
+                  : const Icon(Icons.image, size: 50),
                 title: Text(plato['nombre']),
                 subtitle: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,7 +48,7 @@ class SeccionMenu extends StatelessWidget {
                 trailing: IconButton(
                   icon: const Icon(Icons.add),
                   onPressed: () {
-                    // Aquí iría la lógica para añadir el plato a la comanda
+                    // lógica para añadir el plato a la comanda
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(content: Text('Plato ${plato['nombre']} añadido a la comanda')),
                     );

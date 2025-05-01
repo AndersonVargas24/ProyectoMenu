@@ -25,10 +25,22 @@ class BebidaChef extends StatelessWidget {
     );
 
     if (confirmacion) {
-      await FirebaseFirestore.instance.collection('menu').doc(platoId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('bebida eliminada correctamente')),
-      );
+      try {
+        await FirebaseFirestore.instance.collection('menu').doc(platoId).delete();
+        // Verificar si el widget sigue montado antes de mostrar el SnackBar
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('bebida eliminada correctamente')),
+          );
+        }
+      } catch (e) {
+        // En caso de error, muestra el mensaje correspondiente
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Hubo un error al eliminar la bebida')),
+          );
+        }
+      }
     }
   }
 
@@ -42,8 +54,8 @@ class BebidaChef extends StatelessWidget {
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance.collection('menu')
-        .where('tipo', isEqualTo: 'Bebida')
-        .snapshots(),
+            .where('tipo', isEqualTo: 'Bebida')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -61,7 +73,9 @@ class BebidaChef extends StatelessWidget {
               var plato = platos[index];
               return ListTile(
                 leading: plato['imagen'] != ''
-                    ? Image.asset(plato['imagen'], width: 50, height: 50)
+                    ? (plato['imagen'].toString().startsWith('http')
+                        ? Image.network(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover)
+                        : Image.asset(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover))
                     : const Icon(Icons.image, size: 50),
                 title: Text(plato['nombre']),
                 subtitle: Column(
