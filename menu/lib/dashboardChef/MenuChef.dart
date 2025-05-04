@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 class MenuChef extends StatelessWidget {
   const MenuChef({super.key});
 
-  // Función para eliminar un plato
   void _eliminarPlato(BuildContext context, String platoId) async {
     bool confirmacion = await showDialog(
       context: context,
@@ -41,9 +40,10 @@ class MenuChef extends StatelessWidget {
         foregroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('menu')
-        .where('tipo', isEqualTo: 'Plato')
-        .snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('menu')
+            .where('tipo', isEqualTo: 'Plato')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -56,43 +56,85 @@ class MenuChef extends StatelessWidget {
           var platos = snapshot.data!.docs;
 
           return ListView.builder(
+            padding: const EdgeInsets.all(8),
             itemCount: platos.length,
             itemBuilder: (context, index) {
               var plato = platos[index];
-              return ListTile(
-                leading: plato['imagen'] != ''
-                    ? (plato['imagen'].toString().startsWith('http')
-                      ? Image.network(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover)
-                      : Image.asset(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover))
-                  : const Icon(Icons.image, size: 50),
-                title: Text(plato['nombre']),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Precio: \$${plato['precio']}'),
-                    Text('Descripción: ${plato['descripcion']}'),
-                  ],
+              return Card(
+                elevation: 4,
+                margin: const EdgeInsets.symmetric(vertical: 8),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
+                child: Row(
                   children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () {
-                        // Navegar a página de edición
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditarPlatoPage(platoId: plato.id),
-                          ),
-                        );
-                      },
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(15),
+                          bottomLeft: Radius.circular(15)),
+                      child: plato['imagen'] != ''
+                          ? (plato['imagen'].toString().startsWith('http')
+                              ? Image.network(
+                                  plato['imagen'],
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.asset(
+                                  plato['imagen'],
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.cover,
+                                ))
+                          : const Icon(Icons.image, size: 120),
                     ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () {
-                        _eliminarPlato(context, plato.id);
-                      },
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plato['nombre'],
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Precio: \$${plato['precio']}',
+                              style: const TextStyle(fontSize: 16),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              plato['descripcion'],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.edit, color: Colors.blue),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => EditarPlatoPage(platoId: plato.id),
+                                      ),
+                                    );
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () {
+                                    _eliminarPlato(context, plato.id);
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                   ],
                 ),

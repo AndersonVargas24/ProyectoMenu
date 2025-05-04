@@ -70,65 +70,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
                 _tomarFoto();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.collections),
-              title: const Text('Elegir de galería de app'),
-              onTap: () {
-                Navigator.pop(context);
-                _mostrarSelectorImagen();
-              },
-            ),
           ],
-        );
-      },
-    );
-  }
-
-  void _mostrarSelectorImagen() {
-    List<String> imagenes = [];
-
-    if (dropdownValue == 'Bebida') {
-      imagenes = [
-        'assets/bebidas/limonadas/limonada.png',
-      ];
-    } else {
-      imagenes = [
-        'assets/platos/bandeja_paisa/bandeja1.png',
-      ];
-    }
-
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          height: 300,
-          child: GridView.builder(
-            itemCount: imagenes.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
-            ),
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    imagenSeleccionada = imagenes[index];
-                    imagenDesdeDispositivo = null;
-                  });
-                  Navigator.pop(context);
-                },
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(imagenes[index], fit: BoxFit.cover),
-                ),
-              );
-            },
-          ),
         );
       },
     );
@@ -181,13 +123,15 @@ class _CreacionMenuState extends State<CreacionMenu> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Plato subido exitosamente')),
       );
-      if (tipo == 'Bebida') {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => const BebidaChef()));
-      } else {
-        Navigator.pushReplacement(context,
-            MaterialPageRoute(builder: (context) => const MenuChef()));
-      }
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PrincipalChef(
+            currentIndex: tipo == 'Bebida' ? 1 : 0, // Ajusta el índice según tu orden
+          ),
+        ),
+      );
     } catch (e) {
       print('Error al subir: $e');
       ScaffoldMessenger.of(context).showSnackBar(
@@ -299,8 +243,12 @@ class _CreacionMenuState extends State<CreacionMenu> {
               children: [
                 ElevatedButton(
                   onPressed: () {
-                    Navigator.pushReplacement(context,
-                        MaterialPageRoute(builder: (context) => const PrincipalChef()));
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PrincipalChef(currentIndex: 0),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color.fromARGB(255, 208, 208, 233),

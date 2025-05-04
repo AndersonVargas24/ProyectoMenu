@@ -4,6 +4,12 @@ import 'package:flutter/material.dart';
 class SeccionBebida extends StatelessWidget {
   const SeccionBebida({super.key});
 
+  void _anadirAComanda(BuildContext context, String nombrePlato) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Bebida "$nombrePlato" añadido a la comanda')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -13,9 +19,10 @@ class SeccionBebida extends StatelessWidget {
         foregroundColor: Colors.black,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('menu')
-        .where('tipo', isEqualTo: 'Bebida')
-        .snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('menu')
+            .where('tipo', isEqualTo: 'Bebida')
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -28,31 +35,83 @@ class SeccionBebida extends StatelessWidget {
           var platos = snapshot.data!.docs;
 
           return ListView.builder(
+            padding: const EdgeInsets.all(10),
             itemCount: platos.length,
             itemBuilder: (context, index) {
               var plato = platos[index];
-              return ListTile(
-                      leading: plato['imagen'] != ''
-                    ? (plato['imagen'].toString().startsWith('http')
-                      ? Image.network(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover)
-                      : Image.asset(plato['imagen'], width: 50, height: 50, fit: BoxFit.cover))
-                  : const Icon(Icons.image, size: 50),
-                title: Text(plato['nombre']),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Precio: \$${plato['precio']}'),
-                    Text('Descripción: ${plato['descripcion']}'),
-                  ],
+
+              return Card(
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
                 ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.add),
-                  onPressed: () {
-                    // Aquí iría la lógica para añadir el plato a la comanda
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('Bebida ${plato['nombre']} añadido a la comanda')),
-                    );
-                  },
+                child: Row(
+                  children: [
+                    ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                      ),
+                      child: plato['imagen'] != ''
+                          ? (plato['imagen'].toString().startsWith('http')
+                              ? Image.network(
+                                  plato['imagen'],
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                )
+                              : Image.asset(
+                                  plato['imagen'],
+                                  width: 100,
+                                  height: 100,
+                                  fit: BoxFit.cover,
+                                ))
+                          : const Icon(Icons.image, size: 100),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              plato['nombre'],
+                              style: const TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text('Precio: \$${plato['precio']}'),
+                            const SizedBox(height: 6),
+                            Text(
+                              plato['descripcion'],
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  _anadirAComanda(context, plato['nombre']);
+                                },
+                                icon: const Icon(Icons.add),
+                                label: const Text("Añadir a comanda"),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color.fromARGB(255, 183, 208, 246),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(20),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               );
             },
