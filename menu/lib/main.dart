@@ -1,10 +1,13 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:menu/Autehtentication/login.dart';//raiz
+import 'package:menu/Autehtentication/login.dart'; //raiz
 import 'package:menu/firebase_options.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Firebase;
   try {
     if (Firebase.apps.isEmpty) {
       await Firebase.initializeApp(
@@ -45,6 +48,52 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const LoginMenu(),
+    );
+  }
+}
+
+class NetworkStatusPage extends StatefulWidget {
+  const NetworkStatusPage({super.key});
+
+  @override
+  _NetworkStatusPageState createState() => _NetworkStatusPageState();
+}
+
+class _NetworkStatusPageState extends State<NetworkStatusPage> {
+  String _networkStatus = "Desconocido";
+
+  @override
+  void initState() {
+    super.initState();
+    _checkNetworkStatus();
+  }
+
+  Future<void> _checkNetworkStatus() async {
+    var connectivityResult = await Connectivity().checkConnectivity();
+    String status;
+    if (connectivityResult == ConnectivityResult.mobile) {
+      status = "Conectado a datos móviles";
+    } else if (connectivityResult == ConnectivityResult.wifi) {
+      status = "Conectado a Wi-Fi";
+    } else {
+      status = "Sin conexión a Internet";
+    }
+
+    setState(() {
+      _networkStatus = status;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text("Estado de la Red")),
+      body: Center(
+        child: Text(
+          "Estado de la red: $_networkStatus",
+          style: const TextStyle(fontSize: 18),
+        ),
+      ),
     );
   }
 }
@@ -134,3 +183,6 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+
+// class MyApp extends StatelessWidget 

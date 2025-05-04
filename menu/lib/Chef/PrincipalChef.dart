@@ -5,7 +5,7 @@ import 'package:menu/dashboardChef/Inventario.dart';
 import 'package:menu/dashboardChef/ViewPlato.dart';
 import 'package:menu/dashboardChef/MenuChef.dart';
 import 'package:menu/dashboardChef/ComandaChef.dart';
-import 'Package:menu/dashboardChef/BebidaChef.dart';
+import 'package:menu/dashboardChef/BebidaChef.dart';
 
 class PrincipalChef extends StatefulWidget {
   const PrincipalChef({super.key});
@@ -63,6 +63,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
               onTap: () => _onItemTapped(4),
             ),
             ListTile(
+              leading: Icon(Icons.inventory),
               title: Text("Inventario"),
               onTap: () => _onItemTapped(5),
             ),  

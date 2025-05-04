@@ -1,154 +1,204 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:menu/dashboardChef/EditarProducto.dart';
 
-class Inventario extends StatelessWidget {
-   Inventario({super.key});
+class ProductoInventario {
+  String id;
+  String nombre;
+  String categoria;
+  int cantidad;
+  String unidad;
+  String? imagenUrl;
 
-  final List<ProductoInventario> productos = [
-    ProductoInventario(
-      nombre: "Tomate",
-      cantidad: "15 kg",
-      estado: EstadoInventario.suficiente,
-      imagen: "assets/tomate...", // Corregido
-    ),
-    ProductoInventario(
-      nombre: "Pechuga de Pollo",
-      cantidad: "5 kg",
-      estado: EstadoInventario.bajo,
-      imagen: "assets/pollo.jpeg",
-    ),
-    ProductoInventario(
-      nombre: "Harina",
-      cantidad: "0 kg",
-      estado: EstadoInventario.agotado,
-      imagen: "assets/harina.jpeg",
-    ),
-    ProductoInventario(
-      nombre: "Agotado",
-      cantidad: "Agotado",
-      estado: EstadoInventario.agotado,
-      imagen: "assets/agotado.jpeg",
-    ),
-  ];
+  ProductoInventario({
+    required this.id,
+    required this.nombre,
+    required this.categoria,
+    required this.cantidad,
+    required this.unidad,
+    this.imagenUrl,
+  });
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Inventario'),
-        leading: const Icon(Icons.menu),
-        actions: [
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(12.0), // Corregido
-        child: GridView.builder(
-          itemCount: productos.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            childAspectRatio: 0.8,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemBuilder: (context, index) {
-            final producto = productos[index];
-            return InventarioCard(producto: producto);
-          },
-        ),
-      ),
+ factory ProductoInventario.fromDocument(DocumentSnapshot doc) {
+  final data = doc.data() as Map<String, dynamic>;
+  return ProductoInventario(
+    id: doc.id,
+    nombre: data['nombre'] ?? '',
+    categoria: data['categoria'] ?? '',
+    cantidad: data['cantidad'] ?? 0,
+    unidad: data['unidad'] ?? '',  // <- evita el error por null
+    imagenUrl: data['imagenUrl'],
     );
   }
 }
 
-class ProductoInventario {
-  final String nombre;
-  final String cantidad;
-  final EstadoInventario estado;
-  final String imagen;
-
-  ProductoInventario({
-    required this.nombre,
-    required this.cantidad,
-    required this.estado,
-    required this.imagen,
-  });
+class Inventario extends StatefulWidget {
+  @override
+  _InventarioState createState() => _InventarioState();
 }
 
-enum EstadoInventario { suficiente, bajo, agotado }
+class _InventarioState extends State<Inventario> {
+  List<ProductoInventario> productos = [];
+  String filtroCategoria = 'Todos';
+  String busqueda = '';
+  final ImagePicker _picker = ImagePicker();
 
-class InventarioCard extends StatelessWidget {
-  final ProductoInventario producto;
-
-  const InventarioCard({required this.producto, super.key});
-
-  Color getEstadoColor(EstadoInventario estado) {
-    switch (estado) {
-      case EstadoInventario.suficiente:
-        return Colors.green.shade200;
-      case EstadoInventario.bajo:
-        return Colors.yellow.shade600;
-      case EstadoInventario.agotado:
-        return Colors.red.shade300;
-    }
+  @override
+  void initState() {
+    super.initState();
+    cargarProductos();
   }
 
-  String getEstadoTexto(EstadoInventario estado) {
-    switch (estado) {
-      case EstadoInventario.suficiente:
-        return "Suficiente";
-      case EstadoInventario.bajo:
-        return "Bajo";
-      case EstadoInventario.agotado:
-        return "Agotado";
-    }
+  Future<void> cargarProductos() async {
+    final snapshot = await FirebaseFirestore.instance.collection('productos').get();
+    setState(() {
+      productos = snapshot.docs.map((doc) => ProductoInventario.fromDocument(doc)).toList();
+    });
+  }
+
+  Future<void> agregarProducto() async {
+    String nombre = '';
+    String categoria = '';
+    int cantidad = 0;
+    String unidad = '';
+    File? imagen;
+    String? imagenUrl;
+
+    final nombreController = TextEditingController();
+    final categoriaController = TextEditingController();
+    final cantidadController = TextEditingController();
+    final unidadController = TextEditingController();
+
+    await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: Text('Agregar producto'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: [
+              TextField(controller: nombreController, decoration: InputDecoration(labelText: 'Nombre')),
+              TextField(controller: categoriaController, decoration: InputDecoration(labelText: 'Categoría')),
+              TextField(controller: cantidadController, decoration: InputDecoration(labelText: 'Cantidad'), keyboardType: TextInputType.number),
+              TextField(controller: unidadController, decoration: InputDecoration(labelText: 'Unidad')),
+              ElevatedButton(
+                onPressed: () async {
+                  final picked = await _picker.pickImage(source: ImageSource.gallery);
+                  if (picked != null) {
+                    setState(() => imagen = File(picked.path));
+                  }
+                },
+                child: Text('Seleccionar imagen'),
+              )
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              nombre = nombreController.text;
+              categoria = categoriaController.text;
+              cantidad = int.tryParse(cantidadController.text) ?? 0;
+              unidad = unidadController.text;
+
+              if (imagen != null) {
+                final ref = FirebaseStorage.instance.ref().child('productos/${DateTime.now().millisecondsSinceEpoch}.jpg');
+                await ref.putFile(imagen!);
+                imagenUrl = await ref.getDownloadURL();
+              }
+
+              final doc = await FirebaseFirestore.instance.collection('productos').add({
+                'nombre': nombre,
+                'categoria': categoria,
+                'cantidad': cantidad,
+                'unidad': unidad,
+                'imagenUrl': imagenUrl,
+              });
+
+              setState(() {
+                productos.add(ProductoInventario(
+                  id: doc.id,
+                  nombre: nombre,
+                  categoria: categoria,
+                  cantidad: cantidad,
+                  unidad: unidad,
+                  imagenUrl: imagenUrl,
+                ));
+              });
+
+              Navigator.pop(context)
+              ;
+            },
+            child: Text('Guardar'),
+          )
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 4,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Expanded(
-            child: ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
-              child: Image.asset(
-                producto.imagen,
-                fit: BoxFit.cover,
-                width: double.infinity,
-              ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            producto.nombre,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-          Text("Cantidad: ${producto.cantidad}"),
-          Container(
-            margin: const EdgeInsets.symmetric(vertical: 6),
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-            decoration: BoxDecoration(
-              color: getEstadoColor(producto.estado),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
-              getEstadoTexto(producto.estado),
-              style: const TextStyle(color: Colors.black, fontWeight: FontWeight.w500),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () {},
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            ),
-            child: const Text("Editar"),
-          ),
-          const SizedBox(height: 8),
+    List<String> categorias = ['Todos', ...productos.map((e) => e.categoria).toSet()];
+    List<ProductoInventario> productosFiltrados = productos.where((p) {
+      final coincideBusqueda = p.nombre.toLowerCase().contains(busqueda.toLowerCase());
+      final coincideCategoria = filtroCategoria == 'Todos' || p.categoria == filtroCategoria;
+      return coincideBusqueda && coincideCategoria;
+    }).toList();
+
+    return Scaffold(
+      appBar: AppBar(
+        title: TextField(
+          decoration: InputDecoration(hintText: 'Buscar producto...'),
+          onChanged: (value) => setState(() => busqueda = value),
+        ),
+        actions: [
+          DropdownButton<String>(
+            value: filtroCategoria,
+            onChanged: (value) => setState(() => filtroCategoria = value ?? 'Todos'),
+            items: categorias.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+          )
         ],
+      ),
+      body: ListView.builder(
+        itemCount: productosFiltrados.length,
+        itemBuilder: (context, index) {
+          final p = productosFiltrados[index];
+          return ListTile(
+            leading: p.imagenUrl != null
+              ? Image.network(p.imagenUrl!, width: 50, height: 50, fit: BoxFit.cover)
+              : const Icon(Icons.fastfood),
+            title: Text(p.nombre),
+            subtitle: Text('${p.cantidad} ${p.unidad} - ${p.categoria}'),
+            trailing: IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => EditarProductoScreen(
+                      productoId: p.id,
+                      productoData: {
+                        'nombre': p.nombre,
+                        'categoria': p.categoria,
+                        'unidad': p.unidad,
+                        'imagenUrl': p.imagenUrl,
+                        // Agregar otros campos que necesites editar
+                      },
+                    ),
+                  ),
+                );
+                cargarProductos(); // actualiza la lista al volver
+              },
+            ),
+          );
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: agregarProducto,
+        child: Icon(Icons.add),
       ),
     );
   }
