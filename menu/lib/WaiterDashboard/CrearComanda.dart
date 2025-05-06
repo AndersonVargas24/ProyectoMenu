@@ -3,40 +3,91 @@ import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:menu/Waiter/PrincipalWaiter.dart';
 
-class SeccionCreateComanda extends StatefulWidget {
-  const SeccionCreateComanda({super.key});
+class CrearComanda extends StatefulWidget {
+  const CrearComanda({super.key});
 
   @override
-  State<SeccionCreateComanda> createState() => _SeccionCreateComandaState();
+  State<CrearComanda> createState() => _CrearComandaState();
 }
 
-class _SeccionCreateComandaState extends State<SeccionCreateComanda> {
+class _CrearComandaState extends State<CrearComanda> {
   final PanelController _panelController = PanelController();
-  final List<Map<String, dynamic>> _comanda = []; // Lista para almacenar los items de la comanda (con nombre y otros detalles si es necesario)
+  final List<Map<String, dynamic>> _comanda = []; // Lista para almacenar los items de la comanda (con id, nombre, precio y cantidad)
 
   void _agregarProducto(DocumentSnapshot productoSnapshot) {
+    final existingItemIndex = _comanda.indexWhere((item) => item['id'] == productoSnapshot.id);
     setState(() {
-      _comanda.add({
-        'id': productoSnapshot.id,
-        'nombre': productoSnapshot['nombre'],
-        'precio': productoSnapshot['precio'],
-        // Puedes agregar más detalles si los necesitas
-      });
+      if (existingItemIndex != -1) {
+        _comanda[existingItemIndex]['cantidad']++;
+      } else {
+        _comanda.add({
+          'id': productoSnapshot.id,
+          'nombre': productoSnapshot['nombre'],
+          'precio': productoSnapshot['precio'],
+          'cantidad': 1,
+        });
+      }
     });
     _panelController.open();
   }
 
-  void _enviarComanda() {
+  void _aumentarCantidad(Map<String, dynamic> item) {
+    setState(() {
+      item['cantidad']++;
+    });
+  }
+
+  void _disminuirCantidad(Map<String, dynamic> item) {
+    setState(() {
+      if (item['cantidad'] > 1) {
+        item['cantidad']--;
+      } else {
+        // Si la cantidad es 1, al disminuirla se elimina el item
+        _eliminarProductoComanda(item);
+      }
+    });
+  }
+
+  void _eliminarProductoComanda(Map<String, dynamic> item) {
+    setState(() {
+      _comanda.remove(item);
+      if (_comanda.isEmpty) {
+        _panelController.close();
+      }
+    });
+  }
+
+  Future<void> _enviarComanda() async {
     if (_comanda.isNotEmpty) {
-      // Aquí implementarías la lógica para enviar la comanda
-      // Por ejemplo, guardar los items de _comanda en Firebase
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Comanda enviada con ${_comanda.length} items')),
-      );
-      setState(() {
-        _comanda.clear();
-      });
-      _panelController.close();
+      try {
+        // Obtener la referencia a la colección de comandas
+        CollectionReference comandasCollection = FirebaseFirestore.instance.collection('comandas');
+
+        // Crear un nuevo documento para la comanda
+        await comandasCollection.add({
+          'items': _comanda.map((item) => {
+                'producto_id': item['id'],
+                'nombre': item['nombre'],
+                'precio': item['precio'],
+                'cantidad': item['cantidad'],
+              }).toList(),
+          'fecha_creacion': DateTime.now(),
+          'estado': 'pendiente', // Puedes agregar un estado inicial para la comanda
+          // Puedes agregar más información relevante para la comanda, como el mesero, la mesa, etc.
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Comanda enviada exitosamente')),
+        );
+        setState(() {
+          _comanda.clear();
+        });
+        _panelController.close();
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al enviar la comanda: $error')),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('La comanda está vacía')),
@@ -69,13 +120,10 @@ class _SeccionCreateComandaState extends State<SeccionCreateComanda> {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
                 }
-
                 if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
                   return const Center(child: Text("No hay platos disponibles"));
                 }
-
                 final List<DocumentSnapshot> menuItems = snapshot.data!.docs;
-
                 return ListView.builder(
                   padding: const EdgeInsets.all(16.0),
                   itemCount: menuItems.length,
@@ -84,7 +132,6 @@ class _SeccionCreateComandaState extends State<SeccionCreateComanda> {
                     final nombre = menuItem['nombre'];
                     final precio = menuItem['precio'];
                     final imagen = menuItem['imagen'];
-
                     return Card(
                       child: ListTile(
                         leading: imagen != ''
@@ -128,7 +175,32 @@ class _SeccionCreateComandaState extends State<SeccionCreateComanda> {
                         final item = _comanda[index];
                         return ListTile(
                           title: Text(item['nombre']),
-                          trailing: Text('\$${item['precio'].toStringAsFixed(2)}'),
+                          subtitle: Text('\$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}'),
+                          trailing: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.remove),
+                                onPressed: () {
+                                  _disminuirCantidad(item);
+                                },
+                              ),
+                              Text('${item['cantidad']}'),
+                              IconButton(
+                                icon: const Icon(Icons.add),
+                                onPressed: () {
+                                  _aumentarCantidad(item);
+                                },
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete),
+                                color: Colors.red,
+                                onPressed: () {
+                                  _eliminarProductoComanda(item);
+                                },
+                              ),
+                            ],
+                          ),
                         );
                       },
                     ),
