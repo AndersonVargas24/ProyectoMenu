@@ -37,14 +37,17 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
               decoration: BoxDecoration(color: Colors.blue),
             ),
             ListTile(
+              leading: const Icon(Icons.restaurant_menu),
               title: Text("Menú"),
               onTap: () => _onItemTapped(0),
             ),
             ListTile(
+              leading: const Icon(Icons.local_drink),
               title: Text("Bebidas"),
               onTap: () => _onItemTapped(1),
             ),
             ListTile(
+              leading: const Icon(Icons.receipt),
               title: Text("Comandas"),
               onTap: () => _onItemTapped(2),
             ),

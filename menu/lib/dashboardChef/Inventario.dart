@@ -4,7 +4,9 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:menu/Chef/PrincipalChef.dart';
 import 'package:menu/dashboardChef/EditarProducto.dart';
+import 'package:menu/Waiter/PrincipalWaiter.dart';
 
 class ProductoInventario {
   String id;
@@ -23,15 +25,15 @@ class ProductoInventario {
     this.imagenUrl,
   });
 
- factory ProductoInventario.fromDocument(DocumentSnapshot doc) {
-  final data = doc.data() as Map<String, dynamic>;
-  return ProductoInventario(
-    id: doc.id,
-    nombre: data['nombre'] ?? '',
-    categoria: data['categoria'] ?? '',
-    cantidad: data['cantidad'] ?? 0,
-    unidad: data['unidad'] ?? '',  // <- evita el error por null
-    imagenUrl: data['imagenUrl'],
+  factory ProductoInventario.fromDocument(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return ProductoInventario(
+      id: doc.id,
+      nombre: data['nombre'] ?? '',
+      categoria: data['categoria'] ?? '',
+      cantidad: data['cantidad'] ?? 0,
+      unidad: data['unidad'] ?? '',
+      imagenUrl: data['imagenUrl'],
     );
   }
 }
@@ -129,8 +131,7 @@ class _InventarioState extends State<Inventario> {
                 ));
               });
 
-              Navigator.pop(context)
-              ;
+              Navigator.pop(context);
             },
             child: Text('Guardar'),
           )
@@ -150,6 +151,15 @@ class _InventarioState extends State<Inventario> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const PrincipalChef()),
+            );
+          },
+        ),
         title: TextField(
           decoration: InputDecoration(hintText: 'Buscar producto...'),
           onChanged: (value) => setState(() => busqueda = value),
@@ -168,8 +178,8 @@ class _InventarioState extends State<Inventario> {
           final p = productosFiltrados[index];
           return ListTile(
             leading: p.imagenUrl != null
-              ? Image.network(p.imagenUrl!, width: 50, height: 50, fit: BoxFit.cover)
-              : const Icon(Icons.fastfood),
+                ? Image.network(p.imagenUrl!, width: 50, height: 50, fit: BoxFit.cover)
+                : const Icon(Icons.fastfood),
             title: Text(p.nombre),
             subtitle: Text('${p.cantidad} ${p.unidad} - ${p.categoria}'),
             trailing: IconButton(
@@ -185,7 +195,6 @@ class _InventarioState extends State<Inventario> {
                         'categoria': p.categoria,
                         'unidad': p.unidad,
                         'imagenUrl': p.imagenUrl,
-                        // Agregar otros campos que necesites editar
                       },
                     ),
                   ),

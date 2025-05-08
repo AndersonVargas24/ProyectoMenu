@@ -21,7 +21,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
             // Imagen para CHEF
             GestureDetector(
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => PrincipalChef(currentIndex: 0)),
                 );
@@ -44,7 +44,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
             // Imagen para MESERO
             GestureDetector(
               onTap: () {
-                Navigator.pushReplacement(
+                Navigator.push(
                   context,
                   MaterialPageRoute(builder: (context) => const Principalwaiter()),
                 );
