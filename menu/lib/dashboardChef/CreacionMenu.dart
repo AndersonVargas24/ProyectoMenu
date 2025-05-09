@@ -146,7 +146,17 @@ class _CreacionMenuState extends State<CreacionMenu> {
       backgroundColor: const Color.fromARGB(255, 255, 247, 254),
       appBar: AppBar(
         title: const Text("Nuevo plato"),
-        leading: const BackButton(),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const PrincipalChef(currentIndex: 0),
+              ),
+            );
+          },
+        ),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 1,

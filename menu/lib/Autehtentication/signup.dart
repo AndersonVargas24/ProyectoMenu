@@ -15,12 +15,14 @@ class _RegisterMenuState extends State<RegisterMenu> {
   final email = TextEditingController();
   final password = TextEditingController();
   final confirmpassword = TextEditingController();
+  String? selectedRole;
 
   final formkey = GlobalKey<FormState>();
   bool isvisible = false;
+
   @override
   Widget build(BuildContext context) {
-    return  Scaffold(
+    return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           child: Form(
@@ -29,214 +31,212 @@ class _RegisterMenuState extends State<RegisterMenu> {
               padding: const EdgeInsets.all(8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
-              
-                //Register
                 children: [
-                  ListTile(
-                    title: Text("Registrar nueva cuenta", style: TextStyle(fontSize:50, fontWeight: FontWeight.bold ),),                 
+                  const ListTile(
+                    title: Text(
+                      "Registrar nueva cuenta",
+                      style: TextStyle(fontSize: 50, fontWeight: FontWeight.bold),
+                    ),
                   ),
 
                   // Email
-                  Container(
-                            margin: const EdgeInsets.all(8),
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
-                            child: TextFormField(
-                              controller: email,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return "Por favor ingrese su correo electrónico";
-                                  } else if (!value.contains("@")) {
-                                  return "Correo inválido";
-                                  }
-                                  return null;
-                                  },
-                                  keyboardType: TextInputType.emailAddress,
-                                  decoration: const InputDecoration(
-                                    icon: Icon(Icons.email),
-                                    border: InputBorder.none,
-                                    hintText: "Correo electrónico",
-                                  ),
-                                ),
-                              ),
-                  
-                  Container(
-                            margin: EdgeInsets.all(8),
-                            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              // ignore: deprecated_member_use
-                              color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
-                            child: TextFormField(
-                              controller: username,
-                              validator: (value) {
-                                if (value!.isEmpty) {
-                                  return "Por favor ingrese su nombre de usuario";
-                                }
-                                return null;
-                              },
-                              decoration: const InputDecoration(
-                                icon: Icon(Icons.person),
-                                border: InputBorder.none,
-                                hintText: "Username",
-                              ),
-                            ),
-                          ),
-                      
-                          //Password
-                           Container(
-                             margin: const EdgeInsets.all(8),
-                            padding: 
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              // ignore: deprecated_member_use
-                              color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
-                            child: TextFormField(
-                              controller: password,
-                               validator: (value) {
-                                if (value!.isEmpty) {
-                                  return "Por favor ingrese su contraseña";
-                                }
-                                return null;
-                              },
-                              obscureText: !isvisible,
-                              decoration: InputDecoration(
-                                icon: const Icon(Icons.lock),
-                                border: InputBorder.none,
-                                hintText: "Contraseña",
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      isvisible = !isvisible; //boton de visibilidad contraseña
-                                    });
-                                  }, icon: Icon(isvisible? Icons.visibility: Icons.visibility_off))),
-                            ),
-                          ),
+                  _buildTextInput(
+                    controller: email,
+                    icon: Icons.email,
+                    hintText: "Correo electrónico",
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return "Por favor ingrese su correo electrónico";
+                      } else if (!value.contains("@")) {
+                        return "Correo inválido";
+                      }
+                      return null;
+                    },
+                  ),
 
-                          //Confirm Password
-                           Container(
-                             margin: const EdgeInsets.all(8),
-                            padding: 
-                            const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(8),
-                              // ignore: deprecated_member_use
-                              color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
-                            child: TextFormField(
-                              controller: confirmpassword,
-                               validator: (value) {
-                                if (value!.isEmpty) {
-                                  return "Por favor ingrese su contraseña";
-                                } else if (value != password.text) {
-                                  return "La contraseña no coinciden";
-                                }
-                                return null;
-                              },
-                              obscureText: !isvisible,
-                              decoration: InputDecoration(
-                                icon: const Icon(Icons.lock),
-                                border: InputBorder.none,
-                                hintText: " Confirmar contraseña",
-                                suffixIcon: IconButton(
-                                  onPressed: () {
-                                    setState(() {
-                                      isvisible = !isvisible; //boton de visibilidad contraseña
-                                    });
-                                  }, icon: Icon(isvisible? Icons.visibility: Icons.visibility_off))),
-                            ),
-                          ),
+                  // Username
+                  _buildTextInput(
+                    controller: username,
+                    icon: Icons.person,
+                    hintText: "Username",
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor ingrese su nombre de usuario";
+                      }
+                      return null;
+                    },
+                  ),
 
-                          const SizedBox(height: 10),                       
-                          //Login Button
+                  // Password
+                  _buildTextInput(
+                    controller: password,
+                    icon: Icons.lock,
+                    hintText: "Contraseña",
+                    obscureText: !isvisible,
+                    suffixIcon: IconButton(
+                      icon: Icon(isvisible ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => isvisible = !isvisible),
+                    ),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor ingrese su contraseña";
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // Confirm Password
+                  _buildTextInput(
+                    controller: confirmpassword,
+                    icon: Icons.lock,
+                    hintText: "Confirmar contraseña",
+                    obscureText: !isvisible,
+                    suffixIcon: IconButton(
+                      icon: Icon(isvisible ? Icons.visibility : Icons.visibility_off),
+                      onPressed: () => setState(() => isvisible = !isvisible),
+                    ),
+                    validator: (value) {
+                      if (value!.isEmpty) {
+                        return "Por favor confirme su contraseña";
+                      } else if (value != password.text) {
+                        return "Las contraseñas no coinciden";
+                      }
+                      return null;
+                    },
+                  ),
+
+                  // Rol Dropdown
+                  Container(
+                    margin: const EdgeInsets.all(8),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 19),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5),
+                    ),
+                    child: DropdownButtonFormField<String>(
+                      value: selectedRole,
+                      hint: const Text("Selecciona un rol"),
+                      decoration: const InputDecoration.collapsed(hintText: ""),
+                      items: ['Chef', 'Mesero', 'Admin'].map((role) {
+                        return DropdownMenuItem(
+                          value: role,
+                          child: Text(role),
+                        );
+                      }).toList(),
+                      onChanged: (value) => setState(() => selectedRole = value),
+                      validator: (value) => value == null ? "Por favor selecciona un rol" : null,
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  // Botón Registrarse
                   Container(
                     height: 55,
                     width: MediaQuery.of(context).size.width * 0.9,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(8),
-                      color: const Color.fromARGB(255, 16, 60, 134) 
+                      color: const Color.fromARGB(255, 16, 60, 134),
                     ),
                     child: TextButton(
-                    onPressed: () async {
-                      if (formkey.currentState!.validate()) {
-                           print("✅ Formulario validado");
-                        try {
-                          // Intentar crear usuario
-                          print("⏳ Creando usuario...");
-                          final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
-                            email: email.text.trim(),
-                            password: password.text.trim(),
-                          );
-                          print("✅ Usuario creado");
-                          // Obtener UID del usuario registrado
+                      onPressed: () async {
+                        if (formkey.currentState!.validate()) {
+                          try {
+                            final credential = await FirebaseAuth.instance
+                                .createUserWithEmailAndPassword(
+                              email: email.text.trim(),
+                              password: password.text.trim(),
+                            );
                             String uid = credential.user!.uid;
 
-                            // Guardar en Firestore
-                            print("⏳ Guardando en Firestore...");
                             await FirebaseFirestore.instance.collection('users').doc(uid).set({
                               'email': email.text.trim(),
                               'username': username.text.trim(),
+                              'rol': selectedRole,
                               'createdAt': Timestamp.now(),
                             });
-                            print("✅ Usuario guardado en Firestore");
 
-                          // Si llega aquí, se creó con éxito
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text("Cuenta creada exitosamente ")),
-                          );
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text("Cuenta creada exitosamente")),
+                            );
 
-                          // Opcional: navegar a otra pantalla
-                          print("Redirigiendo al login...");
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (context) => const LoginMenu()),
+                            );
+                          } on FirebaseAuthException catch (e) {
+                            String errorMsg = "Ocurrió un error";
+                            if (e.code == 'email-already-in-use') {
+                              errorMsg = 'Este correo ya está registrado';
+                            } else if (e.code == 'invalid-email') {
+                              errorMsg = 'Correo inválido';
+                            } else if (e.code == 'weak-password') {
+                              errorMsg = 'La contraseña es muy débil';
+                            }
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(errorMsg)),
+                            );
+                          } catch (e) {
+                            print("❌ Otro error: $e");
+                          }
+                        }
+                      },
+                      child: const Text("REGISTRARSE", style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("¿Ya tienes una cuenta?"),
+                      TextButton(
+                        onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => const LoginMenu()),
                           );
-
-                        } on FirebaseAuthException catch (e) {
-                          print("❌ Error de FirebaseAuth: ${e.code}");
-                          String errorMsg = "Ocurrió un error";
-                          if (e.code == 'email-already-in-use') {
-                            errorMsg = 'Este correo ya está registrado';
-                          } else if (e.code == 'invalid-email') {
-                            errorMsg = 'Correo inválido';
-                          } else if (e.code == 'weak-password') {
-                            errorMsg = 'La contraseña es muy débil';
-                          }
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(errorMsg)),
-                          );
-                        } catch (e) {
-                         print("❌ Otro error: $e");
-                      }
-                      } else {
-                        print("❌ Formulario no validado");
-                      }
-                    },
-                    child: Text("REGISTRARSE", style: TextStyle(color: Colors.white ),
-                    )),
-                    ),
-              
-                    //sing up bottom
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Text("Ya tienes una cuenta?"),
-                      TextButton(onPressed: () {
-                        //navegar a la pantalla de login
-                         Navigator.push(context,
-                         MaterialPageRoute(
-                          builder: (context) => const LoginMenu ())); 
-                      },
-                       child: const Text("LOGIN"))
+                        },
+                        child: const Text("LOGIN"),
+                      )
                     ],
                   )
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextInput({
+    required TextEditingController controller,
+    required IconData icon,
+    required String hintText,
+    bool obscureText = false,
+    Widget? suffixIcon,
+    String? Function(String?)? validator,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return Container(
+      margin: const EdgeInsets.all(8),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5),
+      ),
+      child: TextFormField(
+        controller: controller,
+        obscureText: obscureText,
+        validator: validator,
+        keyboardType: keyboardType,
+        decoration: InputDecoration(
+          icon: Icon(icon),
+          border: InputBorder.none,
+          hintText: hintText,
+          suffixIcon: suffixIcon,
         ),
       ),
     );

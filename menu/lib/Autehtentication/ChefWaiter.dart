@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/Chef/PrincipalChef.dart';
 import 'package:menu/Waiter/PrincipalWaiter.dart';
 
@@ -13,7 +14,15 @@ class _ChefWaiterState extends State<ChefWaiter> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Selecciona tu rol")),
+      appBar: AppBar(
+        title: const Text("Selecciona tu rol"),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const LoginMenu())); // Replace Placeholder with the correct widget
+          },
+        ),
+      ),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

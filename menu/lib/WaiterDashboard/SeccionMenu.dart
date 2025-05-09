@@ -1,5 +1,11 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:menu/Autehtentication/ChefWaiter.dart';
+import 'package:menu/Autehtentication/login.dart';
+import 'package:menu/Chef/PrincipalChef.dart';
+import 'package:menu/Waiter/PrincipalWaiter.dart';
+
 
 class SeccionMenu extends StatelessWidget {
   const SeccionMenu({super.key});
@@ -14,9 +20,42 @@ class SeccionMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Sección del Menú"),
+        title: const Text("Menú Mesero"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            final user = FirebaseAuth.instance.currentUser;
+
+            if (user != null) {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get();
+
+              final role = userDoc['rol'];
+
+              if (role == 'Admin') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChefWaiter()),
+                );
+              } else if (role == 'Mesero') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginMenu()),
+                );
+
+              }
+            } else {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => const LoginMenu()),
+              );
+            }
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -100,7 +139,8 @@ class SeccionMenu extends StatelessWidget {
                                 icon: const Icon(Icons.add),
                                 label: const Text("Añadir a comanda"),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color.fromARGB(255, 183, 208, 246),
+                                  backgroundColor:
+                                      const Color.fromARGB(255, 183, 208, 246),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(20),
                                   ),

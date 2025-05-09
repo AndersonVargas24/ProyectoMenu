@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:menu/Waiter/PrincipalWaiter.dart';
 
 class SeccionBebida extends StatelessWidget {
   const SeccionBebida({super.key});
@@ -17,6 +18,14 @@ class SeccionBebida extends StatelessWidget {
         title: const Text("Sección del Menú"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context, MaterialPageRoute (builder: (context) => const Principalwaiter()),
+              );// Volver a la pantalla anterior
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

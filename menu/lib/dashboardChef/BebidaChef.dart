@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:menu/Autehtentication/login.dart';
+import 'package:menu/Chef/PrincipalChef.dart';
 
 class BebidaChef extends StatelessWidget {
   const BebidaChef({super.key});
@@ -32,6 +34,8 @@ class BebidaChef extends StatelessWidget {
     }
   }
 
+  
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -39,6 +43,14 @@ class BebidaChef extends StatelessWidget {
         title: const Text("Menú Chef"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const PrincipalChef()));            // Volver a la pantalla anterior
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance

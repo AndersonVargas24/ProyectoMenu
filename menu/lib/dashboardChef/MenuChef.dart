@@ -1,5 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:menu/Autehtentication/ChefWaiter.dart';
+import 'package:menu/Autehtentication/login.dart';
+
 
 class MenuChef extends StatelessWidget {
   const MenuChef({super.key});
@@ -38,6 +42,34 @@ class MenuChef extends StatelessWidget {
         title: const Text("Menú Chef"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () async {
+            final user = FirebaseAuth.instance.currentUser;
+
+            if (user != null) {
+              final userDoc = await FirebaseFirestore.instance
+                  .collection('users')
+                  .doc(user.uid)
+                  .get();
+
+              final role = userDoc['rol'];
+
+              if (role == 'Admin') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const ChefWaiter()),
+                );
+              } else if (role == 'Chef') {
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LoginMenu()),
+                );
+              }
+              // Agregar más roles si es necesario
+            }
+          },
+        ),
       ),
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
@@ -70,8 +102,9 @@ class MenuChef extends StatelessWidget {
                   children: [
                     ClipRRect(
                       borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(15),
-                          bottomLeft: Radius.circular(15)),
+                        topLeft: Radius.circular(15),
+                        bottomLeft: Radius.circular(15),
+                      ),
                       child: plato['imagen'] != ''
                           ? (plato['imagen'].toString().startsWith('http')
                               ? Image.network(
@@ -119,7 +152,8 @@ class MenuChef extends StatelessWidget {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => EditarPlatoPage(platoId: plato.id),
+                                        builder: (context) =>
+                                            EditarPlatoPage(platoId: plato.id),
                                       ),
                                     );
                                   },
@@ -197,7 +231,10 @@ class EditarPlatoPage extends StatelessWidget {
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () async {
-                    await FirebaseFirestore.instance.collection('menu').doc(platoId).update({
+                    await FirebaseFirestore.instance
+                        .collection('menu')
+                        .doc(platoId)
+                        .update({
                       'nombre': nombreController.text,
                       'precio': double.tryParse(precioController.text) ?? 0,
                       'descripcion': descripcionController.text,
