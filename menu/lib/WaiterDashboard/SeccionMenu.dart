@@ -19,11 +19,31 @@ class _SeccionMenuState extends State<SeccionMenu> {
   List<Map<String, dynamic>> _itemsComanda = [];
   String _filtro = 'TODO';
   List<DocumentSnapshot> _menuItems = [];
+  int _siguienteNumeroComanda = 1; // Initialize the order number
 
   @override
   void initState() {
     super.initState();
     _cargarMenuItems();
+    _cargarUltimoNumeroComanda(); // Load the last order number
+  }
+
+  Future<void> _cargarUltimoNumeroComanda() async {
+    final QuerySnapshot<Map<String, dynamic>> lastComandaSnapshot =
+        await FirebaseFirestore.instance
+            .collection('comandas')
+            .orderBy('numeroComanda', descending: true)
+            .limit(1)
+            .get();
+
+    if (lastComandaSnapshot.docs.isNotEmpty) {
+      final lastComanda = lastComandaSnapshot.docs.first.data();
+      if (lastComanda.containsKey('numeroComanda') && lastComanda['numeroComanda'] is int) {
+        setState(() {
+          _siguienteNumeroComanda = lastComanda['numeroComanda'] + 1;
+        });
+      }
+    }
   }
 
   Future<void> _cargarMenuItems() async {
@@ -34,7 +54,7 @@ class _SeccionMenuState extends State<SeccionMenu> {
     });
   }
 
-  List<DocumentSnapshot> get _filteredMenuItems {
+  List<DocumentSnapshot> get filteredMenuItems {
     if (_filtro == 'TODO') {
       return _menuItems;
     } else {
@@ -92,10 +112,32 @@ class _SeccionMenuState extends State<SeccionMenu> {
     return total;
   }
 
+  Future<String> _getUsername(String? uid) async {
+    if (uid == null) {
+      return 'Usuario Desconocido';
+    }
+    try {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      if (userDoc.exists && userDoc.data()?.containsKey('username') == true) {
+        return userDoc['username'] as String? ?? 'Usuario Desconocido';
+      } else {
+        return 'Usuario Desconocido';
+      }
+    } catch (e) {
+      print('Error al obtener el username: \$e');
+      return 'Usuario Desconocido';
+    }
+  }
+
   Future<void> _guardarComanda() async {
     if (_itemsComanda.isNotEmpty) {
       try {
+        final user = FirebaseAuth.instance.currentUser;
+        final uid = user?.uid;
+        final username = await _getUsername(uid);
+
         await FirebaseFirestore.instance.collection('comandas').add({
+          'numeroComanda': _siguienteNumeroComanda, // Save the sequential number
           'items': _itemsComanda.map((item) => {
                 'nombre': item['nombre'],
                 'precio': item['precio'],
@@ -104,6 +146,8 @@ class _SeccionMenuState extends State<SeccionMenu> {
               }).toList(),
           'fecha_creacion': DateTime.now(),
           'estado': 'pendiente',
+          'usuario_creador_uid': uid,
+          'usuario_creador_nombre': username,
         });
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Comanda creada exitosamente')),
@@ -111,10 +155,11 @@ class _SeccionMenuState extends State<SeccionMenu> {
         setState(() {
           _itemsComanda.clear();
           _panelController.close();
+          _siguienteNumeroComanda++; // Increment for the next order
         });
       } catch (error) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear la comanda: $error')),
+          SnackBar(content: Text('Error al crear la comanda: \$error')),
         );
       }
     } else {
@@ -128,12 +173,12 @@ class _SeccionMenuState extends State<SeccionMenu> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Sección del Menú"),
+        title: const Text("Sección del Menú", style: TextStyle(color: Colors.black)),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         actions: [
           IconButton(
-            icon: const Icon(Icons.exit_to_app),
+            icon: const Icon(Icons.exit_to_app, color: Colors.black),
             tooltip: 'Cerrar sesión',
             onPressed: () async {
               final user = FirebaseAuth.instance.currentUser;
@@ -226,14 +271,14 @@ class _SeccionMenuState extends State<SeccionMenu> {
         children: [
           _menuItems.isEmpty
               ? const Center(child: CircularProgressIndicator())
-              : _filteredMenuItems.isEmpty
+              : filteredMenuItems.isEmpty
                   ? const Center(child: Text("No hay items en esta categoría"))
                   : ListView.builder(
                       padding: const EdgeInsets.all(10),
-                      itemCount: _filteredMenuItems.length,
+                      itemCount: filteredMenuItems.length,
                       itemBuilder: (context, index) {
-                        final item = _filteredMenuItems[index].data() as Map<String, dynamic>;
-                        final itemId = _filteredMenuItems[index].id;
+                        final item = filteredMenuItems[index].data() as Map<String, dynamic>;
+                        final itemId = filteredMenuItems[index].id;
                         return Card(
                           elevation: 3,
                           margin: const EdgeInsets.symmetric(vertical: 10),
@@ -329,7 +374,8 @@ class _SeccionMenuState extends State<SeccionMenu> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                const Text('Items en Comanda', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('Comanda #${_siguienteNumeroComanda - 1}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // Display current order number
+                const Text('Items en Comanda', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 Expanded(
                   child: _itemsComanda.isEmpty
                       ? const Center(child: Text('No hay items en la comanda'))
@@ -339,7 +385,7 @@ class _SeccionMenuState extends State<SeccionMenu> {
                             final item = _itemsComanda[index];
                             return ListTile(
                               title: Text(item['nombre']),
-                              subtitle: Text('Cantidad: ${item['cantidad']} - \$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}'),
+                              subtitle: Text('Cantidad: \$${item['cantidad']} - \$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -347,14 +393,13 @@ class _SeccionMenuState extends State<SeccionMenu> {
                                     icon: const Icon(Icons.remove),
                                     onPressed: () => _decrementarCantidad(index),
                                   ),
-                                  Text('${item['cantidad']}'),
+                                  Text('\$${item['cantidad']}'),
                                   IconButton(
                                     icon: const Icon(Icons.add),
                                     onPressed: () => _incrementarCantidad(index),
                                   ),
                                   IconButton(
-                                    icon: const Icon(Icons.delete),
-                                    color: Colors.red,
+                                    icon: const Icon(Icons.delete, color: Colors.red),
                                     onPressed: () => _eliminarItem(index),
                                   ),
                                 ],

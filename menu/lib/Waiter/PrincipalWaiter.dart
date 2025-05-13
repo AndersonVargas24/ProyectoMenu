@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:menu/WaiterDashboard/SeccionMenu.dart';
+import 'package:menu/WaiterDashboard/ComandasView.dart';
 
 class Principalwaiter extends StatefulWidget {
   const Principalwaiter({super.key});
@@ -12,6 +13,7 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
   int _selectedIndex = 0;
   final List<Widget> _pages = <Widget>[
     const SeccionMenu(),
+    const ComandasView(),
   ];
 
   void _onItemTapped (int index) {
@@ -41,6 +43,12 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
             ListTile(
               leading: const Icon(Icons.receipt),
               title: Text("Comandas"),
+              onTap: () => _onItemTapped(1),
+            ),
+
+            ListTile(
+              leading: const Icon(Icons.history),
+              title: Text("Historial"),
               onTap: () => _onItemTapped(2),
             ),
            
