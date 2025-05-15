@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Para formatear fechas
+import 'EditarComanda.dart'; // Importa la pantalla EditarComandaView
 
 class ComandasView extends StatelessWidget {
   const ComandasView({super.key});
@@ -234,8 +235,13 @@ class _ComandaCard extends StatelessWidget {
                     elevation: 3,
                   ),
                   onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EditarComandaView(comandaId: documentId),
+                      ),
+                    );
                     print('Navegar a la edición de comanda con ID: $documentId');
-                    // TODO: Aquí iría la navegación a la vista de edición.
                   },
                 ),
               ),
