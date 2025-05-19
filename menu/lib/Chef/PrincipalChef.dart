@@ -4,7 +4,7 @@ import 'package:menu/dashboardChef/HistorialComanda.dart';
 import 'package:menu/dashboardChef/Inventario.dart';
 import 'package:menu/dashboardChef/MenuChef.dart';
 import 'package:menu/dashboardChef/ComandaChef.dart';
-import 'package:menu/dashboardChef/BebidaChef.dart';
+
 
 class PrincipalChef extends StatefulWidget {
   final int currentIndex;
@@ -19,7 +19,6 @@ class _PrincipalChefState extends State<PrincipalChef> {
 
   final List<Widget> _pages = <Widget>[
     const MenuChef(),
-    const BebidaChef(),
     const CreacionMenu(),
     const ComandaChef(),
     const HistorialComanda(),
@@ -60,34 +59,28 @@ class _PrincipalChefState extends State<PrincipalChef> {
               onTap: () => _onItemTapped(0),
             ),
             ListTile(
-              leading: const Icon(Icons.local_drink),
-              title: const Text("Bebidas"),
+              leading: const Icon(Icons.add_circle),
+              title: const Text("Crear Plato o Bebida"),
               selected: _selectedIndex == 1,
               onTap: () => _onItemTapped(1),
             ),
             ListTile(
-              leading: const Icon(Icons.add_circle),
-              title: const Text("Crear Plato o Bebida"),
+              leading: const Icon(Icons.receipt),
+              title: const Text("Comandas"),
               selected: _selectedIndex == 2,
               onTap: () => _onItemTapped(2),
             ),
             ListTile(
-              leading: const Icon(Icons.receipt),
-              title: const Text("Comandas"),
+              leading: const Icon(Icons.history),
+              title: const Text("Historial de Comandas"),
               selected: _selectedIndex == 3,
               onTap: () => _onItemTapped(3),
             ),
             ListTile(
-              leading: const Icon(Icons.history),
-              title: const Text("Historial de Comandas"),
-              selected: _selectedIndex == 4,
-              onTap: () => _onItemTapped(4),
-            ),
-            ListTile(
               leading: const Icon(Icons.inventory),
               title: const Text("Inventario"),
-              selected: _selectedIndex == 5,
-              onTap: () => _onItemTapped(5),
+              selected: _selectedIndex == 4,
+              onTap: () => _onItemTapped(4),
             ),  
           ],
         ),

@@ -1,19 +1,26 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:menu/dashboardChef/EditarPlato.dart';
 import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/login.dart';
 
-
-class MenuChef extends StatelessWidget {
+class MenuChef extends StatefulWidget {
   const MenuChef({super.key});
 
-  void _eliminarPlato(BuildContext context, String platoId) async {
-    bool confirmacion = await showDialog(
+  @override
+  State<MenuChef> createState() => _SeccionMenuState();
+}
+
+class _SeccionMenuState extends State<MenuChef> {
+  String _filtro = 'TODO';
+
+  Future<void> _confirmarEliminarPlato(String itemId) async {
+    final confirmar = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: const Text('¿Estás seguro de que deseas eliminar este plato?'),
+        title: const Text('¿Eliminar plato?'),
+        content: const Text('Esta acción no se puede deshacer. ¿Estás seguro de que deseas eliminar este plato?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -27,11 +34,17 @@ class MenuChef extends StatelessWidget {
       ),
     );
 
-    if (confirmacion) {
-      await FirebaseFirestore.instance.collection('menu').doc(platoId).delete();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Plato eliminado correctamente')),
-      );
+    if (confirmar == true) {
+      try {
+        await FirebaseFirestore.instance.collection('menu').doc(itemId).delete();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Plato eliminado exitosamente')),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al eliminar: $e')),
+        );
+      }
     }
   }
 
@@ -39,62 +52,125 @@ class MenuChef extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Menú Chef"),
+        title: const Text("Sección del Menú"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () async {
-            final user = FirebaseAuth.instance.currentUser;
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app),
+            tooltip: 'Cerrar sesión',
+            onPressed: () async {
+              final user = FirebaseAuth.instance.currentUser;
 
-            if (user != null) {
-              final userDoc = await FirebaseFirestore.instance
-                  .collection('users')
-                  .doc(user.uid)
-                  .get();
+              if (user != null) {
+                final userDoc = await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(user.uid)
+                    .get();
 
-              final role = userDoc['rol'];
+                final role = userDoc['rol'];
 
-              if (role == 'Admin') {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const ChefWaiter()),
-                );
-              } else if (role == 'Chef') {
+                if (role == 'Admin') {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const ChefWaiter()),
+                  );
+                } else {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginMenu()),
+                  );
+                }
+              } else {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginMenu()),
                 );
               }
-              // Agregar más roles si es necesario
-            }
-          },
+            },
+          ),
+        ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(50.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filtro = 'TODO';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _filtro == 'TODO' ? Colors.blue : Colors.grey[300],
+                    foregroundColor: _filtro == 'TODO' ? Colors.white : Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('TODO'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filtro = 'Plato';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _filtro == 'Plato' ? Colors.blue : Colors.grey[300],
+                    foregroundColor: _filtro == 'Plato' ? Colors.white : Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('PLATILLOS'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      _filtro = 'Bebida';
+                    });
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _filtro == 'Bebida' ? Colors.blue : Colors.grey[300],
+                    foregroundColor: _filtro == 'Bebida' ? Colors.white : Colors.black,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                  ),
+                  child: const Text('BEBIDAS'),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('menu')
-            .where('tipo', isEqualTo: 'Plato')
-            .snapshots(),
+        stream: FirebaseFirestore.instance.collection('menu').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            return const Center(child: Text("No hay platos disponibles"));
+            return const Center(child: Text("No hay ítems en el menú"));
           }
 
-          var platos = snapshot.data!.docs;
+          List<DocumentSnapshot> allItems = snapshot.data!.docs;
+          List<DocumentSnapshot> filteredItems = _filtro == 'TODO'
+              ? allItems
+              : allItems.where((item) => item['tipo'] == _filtro).toList();
+
+          if (filteredItems.isEmpty) {
+            return const Center(child: Text("No hay ítems en esta categoría"));
+          }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(8),
-            itemCount: platos.length,
+            padding: const EdgeInsets.all(10),
+            itemCount: filteredItems.length,
             itemBuilder: (context, index) {
-              var plato = platos[index];
+              final item = filteredItems[index].data() as Map<String, dynamic>;
+              final itemId = filteredItems[index].id;
+
               return Card(
-                elevation: 4,
-                margin: const EdgeInsets.symmetric(vertical: 8),
+                elevation: 3,
+                margin: const EdgeInsets.symmetric(vertical: 10),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(15),
                 ),
@@ -105,21 +181,21 @@ class MenuChef extends StatelessWidget {
                         topLeft: Radius.circular(15),
                         bottomLeft: Radius.circular(15),
                       ),
-                      child: plato['imagen'] != ''
-                          ? (plato['imagen'].toString().startsWith('http')
+                      child: item['imagen'] != ''
+                          ? (item['imagen'].toString().startsWith('http')
                               ? Image.network(
-                                  plato['imagen'],
-                                  width: 120,
-                                  height: 120,
+                                  item['imagen'],
+                                  width: 100,
+                                  height: 100,
                                   fit: BoxFit.cover,
                                 )
                               : Image.asset(
-                                  plato['imagen'],
-                                  width: 120,
-                                  height: 120,
+                                  item['imagen'],
+                                  width: 100,
+                                  height: 100,
                                   fit: BoxFit.cover,
                                 ))
-                          : const Icon(Icons.image, size: 120),
+                          : Icon(item['tipo'] == 'Plato' ? Icons.restaurant : Icons.local_drink, size: 100),
                     ),
                     Expanded(
                       child: Padding(
@@ -128,43 +204,41 @@ class MenuChef extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              plato['nombre'],
-                              style: const TextStyle(
-                                  fontSize: 18, fontWeight: FontWeight.bold),
+                              item['nombre'],
+                              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 6),
-                            Text(
-                              'Precio: \$${plato['precio']}',
-                              style: const TextStyle(fontSize: 16),
-                            ),
+                            Text('Precio: \$${item['precio']}'),
                             const SizedBox(height: 6),
                             Text(
-                              plato['descripcion'],
+                              item['descripcion'],
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.edit, color: Colors.blue),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            EditarPlatoPage(platoId: plato.id),
-                                      ),
-                                    );
-                                  },
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    _eliminarPlato(context, plato.id);
-                                  },
-                                ),
-                              ],
+                            const SizedBox(height: 10),
+                            Align(
+                              alignment: Alignment.bottomRight,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => EditarPlatoPage(itemId: itemId),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    color: Colors.red,
+                                    onPressed: () => _confirmarEliminarPlato(itemId),
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
@@ -174,78 +248,6 @@ class MenuChef extends StatelessWidget {
                 ),
               );
             },
-          );
-        },
-      ),
-    );
-  }
-}
-
-class EditarPlatoPage extends StatelessWidget {
-  final String platoId;
-
-  const EditarPlatoPage({super.key, required this.platoId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("Editar Plato"),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-      ),
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance.collection('menu').doc(platoId).get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return const Center(child: Text("No se pudo cargar el plato"));
-          }
-
-          var plato = snapshot.data!;
-          var nombreController = TextEditingController(text: plato['nombre']);
-          var precioController = TextEditingController(text: plato['precio'].toString());
-          var descripcionController = TextEditingController(text: plato['descripcion']);
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                TextField(
-                  controller: nombreController,
-                  decoration: const InputDecoration(labelText: 'Nombre'),
-                ),
-                TextField(
-                  controller: precioController,
-                  decoration: const InputDecoration(labelText: 'Precio'),
-                  keyboardType: TextInputType.number,
-                ),
-                TextField(
-                  controller: descripcionController,
-                  decoration: const InputDecoration(labelText: 'Descripción'),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton(
-                  onPressed: () async {
-                    await FirebaseFirestore.instance
-                        .collection('menu')
-                        .doc(platoId)
-                        .update({
-                      'nombre': nombreController.text,
-                      'precio': double.tryParse(precioController.text) ?? 0,
-                      'descripcion': descripcionController.text,
-                    });
-
-                    Navigator.pop(context);
-                  },
-                  child: const Text("Guardar cambios"),
-                ),
-              ],
-            ),
           );
         },
       ),

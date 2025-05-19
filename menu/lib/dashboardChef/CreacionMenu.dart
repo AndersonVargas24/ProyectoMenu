@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:menu/Chef/PrincipalChef.dart';
-import 'package:menu/dashboardChef/BebidaChef.dart';
-import 'package:menu/dashboardChef/MenuChef.dart';
 
 class CreacionMenu extends StatefulWidget {
   const CreacionMenu({super.key});
@@ -78,9 +77,23 @@ class _CreacionMenuState extends State<CreacionMenu> {
 
   Future<String?> _subirImagenAStorage(File imagen) async {
     try {
+      // Comprimir imagen antes de subir
+      final compressedImageBytes = await FlutterImageCompress.compressWithFile(
+        imagen.path,
+        minWidth: 800,
+        minHeight: 800,
+        quality: 70,
+      );
+
+      if (compressedImageBytes == null) {
+        print('Error al comprimir imagen');
+        return null;
+      }
+
       final nombreArchivo = '${DateTime.now().millisecondsSinceEpoch}.jpg';
       final storageRef = FirebaseStorage.instance.ref().child('menu/$nombreArchivo');
-      final uploadTask = await storageRef.putFile(imagen);
+
+      final uploadTask = await storageRef.putData(compressedImageBytes);
       final url = await uploadTask.ref.getDownloadURL();
       return url;
     } catch (e) {
@@ -128,7 +141,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
         context,
         MaterialPageRoute(
           builder: (context) => PrincipalChef(
-            currentIndex: tipo == 'Bebida' ? 1 : 0, // Ajusta el índice según tu orden
+            currentIndex: tipo == 'Bebida' ? 1 : 0,
           ),
         ),
       );
@@ -143,7 +156,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 255, 247, 254),
+      backgroundColor: const Color(0xFFF3F3F3),
       appBar: AppBar(
         title: const Text("Nuevo plato"),
         leading: IconButton(
@@ -157,9 +170,9 @@ class _CreacionMenuState extends State<CreacionMenu> {
             );
           },
         ),
-        backgroundColor: Colors.white,
+        backgroundColor: const Color.fromRGBO(224, 224, 224, 1),
         foregroundColor: Colors.black,
-        elevation: 1,
+        elevation: 5,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -168,11 +181,18 @@ class _CreacionMenuState extends State<CreacionMenu> {
             GestureDetector(
               onTap: _mostrarOpcionesImagen,
               child: Container(
-                width: 120,
-                height: 120,
+                width: 150,
+                height: 150,
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
+                  color: Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(20),
@@ -180,7 +200,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
                       ? Image.file(imagenDesdeDispositivo!, fit: BoxFit.cover)
                       : imagenSeleccionada != null
                           ? Image.asset(imagenSeleccionada!, fit: BoxFit.cover)
-                          : const Icon(Icons.download, size: 50),
+                          : const Icon(Icons.add_a_photo, size: 50),
                 ),
               ),
             ),
@@ -193,6 +213,8 @@ class _CreacionMenuState extends State<CreacionMenu> {
                     decoration: const InputDecoration(
                       labelText: 'Nombre:',
                       border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                   ),
                 ),
@@ -203,6 +225,8 @@ class _CreacionMenuState extends State<CreacionMenu> {
                     decoration: const InputDecoration(
                       labelText: 'Precio:',
                       border: OutlineInputBorder(),
+                      filled: true,
+                      fillColor: Colors.white,
                     ),
                     keyboardType: TextInputType.number,
                   ),
@@ -215,6 +239,8 @@ class _CreacionMenuState extends State<CreacionMenu> {
               decoration: const InputDecoration(
                 labelText: 'Descripción:',
                 border: OutlineInputBorder(),
+                filled: true,
+                fillColor: Colors.white,
               ),
               maxLines: 4,
             ),
@@ -222,8 +248,15 @@ class _CreacionMenuState extends State<CreacionMenu> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.grey.shade200,
+                color: const Color.fromRGBO(224, 224, 224, 1),
                 borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black26,
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ],
               ),
               child: DropdownButtonFormField<String>(
                 decoration: const InputDecoration(
@@ -256,22 +289,23 @@ class _CreacionMenuState extends State<CreacionMenu> {
                     Navigator.pushReplacement(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => PrincipalChef(currentIndex: 0),
+                        builder: (context) =>
+                            const PrincipalChef(currentIndex: 0),
                       ),
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 208, 208, 233),
+                    backgroundColor: const Color.fromRGBO(224, 224, 224, 1),
                     padding: const EdgeInsets.symmetric(horizontal: 25),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
                   ),
-                  child: const Text('  CANCELAR  '),
+                  child: const Text('CANCELAR'),
                 ),
                 ElevatedButton(
                   onPressed: _subirPlato,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color.fromARGB(255, 208, 208, 233),
+                    backgroundColor: const Color.fromRGBO(224, 224, 224, 1),
                     padding: const EdgeInsets.symmetric(horizontal: 25),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(30)),
@@ -279,7 +313,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
                   child: const Text('SUBIR PLATO'),
                 ),
               ],
-            )
+            ),
           ],
         ),
       ),
