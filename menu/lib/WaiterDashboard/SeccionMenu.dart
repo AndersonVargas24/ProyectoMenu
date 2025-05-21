@@ -19,67 +19,57 @@ class _SeccionMenuState extends State<SeccionMenu> {
   List<Map<String, dynamic>> _itemsComanda = [];
   String _filtro = 'TODO';
   List<DocumentSnapshot> _menuItems = [];
-  int _siguienteNumeroComanda = 1; // Initialize the order number
+  int _siguienteNumeroComanda = 1;
+  String _comentario = '';
 
   @override
   void initState() {
     super.initState();
     _cargarMenuItems();
-    _cargarUltimoNumeroComanda(); // Load the last order number
+    _cargarUltimoNumeroComanda();
   }
 
   Future<void> _cargarUltimoNumeroComanda() async {
-    final QuerySnapshot<Map<String, dynamic>> lastComandaSnapshot =
-        await FirebaseFirestore.instance
-            .collection('comandas')
-            .orderBy('numeroComanda', descending: true)
-            .limit(1)
-            .get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('comandas')
+        .orderBy('numeroComanda', descending: true)
+        .limit(1)
+        .get();
 
-    if (lastComandaSnapshot.docs.isNotEmpty) {
-      final lastComanda = lastComandaSnapshot.docs.first.data();
-      if (lastComanda.containsKey('numeroComanda') && lastComanda['numeroComanda'] is int) {
-        setState(() {
-          _siguienteNumeroComanda = lastComanda['numeroComanda'] + 1;
-        });
+    if (snapshot.docs.isNotEmpty) {
+      final last = snapshot.docs.first.data();
+      if (last.containsKey('numeroComanda') && last['numeroComanda'] is int) {
+        setState(() => _siguienteNumeroComanda = last['numeroComanda'] + 1);
       }
     }
   }
 
-  Future<void> _cargarMenuItems() async {
+  void _cargarMenuItems() {
     FirebaseFirestore.instance.collection('menu').snapshots().listen((snapshot) {
-      setState(() {
-        _menuItems = snapshot.docs;
-      });
+      setState(() => _menuItems = snapshot.docs);
     });
   }
 
   List<DocumentSnapshot> get filteredMenuItems {
-    if (_filtro == 'TODO') {
-      return _menuItems;
-    } else {
-      return _menuItems.where((item) => item['tipo'] == _filtro).toList();
-    }
+    return _filtro == 'TODO'
+        ? _menuItems
+        : _menuItems.where((item) => item['tipo'] == _filtro).toList();
   }
 
-  void _anadirItem(Map<String, dynamic> menuItem) {
+  void _anadirItem(Map<String, dynamic> menuItem) async {
     setState(() {
-      final existingItemIndex = _itemsComanda.indexWhere((item) => item['nombre'] == menuItem['nombre']);
-      if (existingItemIndex != -1) {
-        _itemsComanda[existingItemIndex]['cantidad']++;
+      final index = _itemsComanda.indexWhere((item) => item['nombre'] == menuItem['nombre']);
+      if (index != -1) {
+        _itemsComanda[index]['cantidad']++;
       } else {
         _itemsComanda.add({...menuItem, 'cantidad': 1});
       }
     });
-    if (!_panelController.isPanelOpen) {
-      _panelController.open();
-    }
+    if (!_panelController.isPanelOpen) await _panelController.open();
   }
 
   void _incrementarCantidad(int index) {
-    setState(() {
-      _itemsComanda[index]['cantidad']++;
-    });
+    setState(() => _itemsComanda[index]['cantidad']++);
   }
 
   void _decrementarCantidad(int index) {
@@ -95,78 +85,90 @@ class _SeccionMenuState extends State<SeccionMenu> {
     });
   }
 
-  void _eliminarItem(int index) {
-    setState(() {
-      _itemsComanda.removeAt(index);
-      if (_itemsComanda.isEmpty && _panelController.isPanelOpen) {
-        _panelController.close();
-      }
-    });
+  void _eliminarItem(int index) async {
+    final confirm = await showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('¿Eliminar item?'),
+        content: const Text('¿Estás seguro de eliminar este item de la comanda?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancelar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Eliminar')),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      setState(() {
+        _itemsComanda.removeAt(index);
+        if (_itemsComanda.isEmpty && _panelController.isPanelOpen) {
+          _panelController.close();
+        }
+      });
+    }
   }
 
-  double _calcularTotalComanda() {
-    double total = 0;
-    for (var item in _itemsComanda) {
-      total += item['precio'] * item['cantidad'];
-    }
-    return total;
-  }
+  double _calcularTotalComanda() => _itemsComanda.fold(0, (total, item) => total + item['precio'] * item['cantidad']);
 
   Future<String> _getUsername(String? uid) async {
-    if (uid == null) {
-      return 'Usuario Desconocido';
-    }
+    if (uid == null) return 'Usuario Desconocido';
     try {
-      final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
-      if (userDoc.exists && userDoc.data()?.containsKey('username') == true) {
-        return userDoc['username'] as String? ?? 'Usuario Desconocido';
-      } else {
-        return 'Usuario Desconocido';
-      }
+      final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      return doc.exists && doc.data()?.containsKey('username') == true
+          ? doc['username'] ?? 'Usuario Desconocido'
+          : 'Usuario Desconocido';
     } catch (e) {
-      print('Error al obtener el username: \$e');
+      debugPrint('Error al obtener el username: $e');
       return 'Usuario Desconocido';
     }
   }
 
   Future<void> _guardarComanda() async {
-    if (_itemsComanda.isNotEmpty) {
-      try {
-        final user = FirebaseAuth.instance.currentUser;
-        final uid = user?.uid;
-        final username = await _getUsername(uid);
-
-        await FirebaseFirestore.instance.collection('comandas').add({
-          'numeroComanda': _siguienteNumeroComanda, // Save the sequential number
-          'items': _itemsComanda.map((item) => {
-                'nombre': item['nombre'],
-                'precio': item['precio'],
-                'cantidad': item['cantidad'],
-                'producto_id': item.containsKey('id') ? item['id'] : null,
-              }).toList(),
-          'fecha_creacion': DateTime.now(),
-          'estado': 'pendiente',
-          'usuario_creador_uid': uid,
-          'usuario_creador_nombre': username,
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Comanda creada exitosamente')),
-        );
-        setState(() {
-          _itemsComanda.clear();
-          _panelController.close();
-          _siguienteNumeroComanda++; // Increment for the next order
-        });
-      } catch (error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al crear la comanda: \$error')),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('La comanda está vacía')),
-      );
+    if (_itemsComanda.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('La comanda está vacía')));
+      return;
     }
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      final username = await _getUsername(user?.uid);
+
+      await FirebaseFirestore.instance.collection('comandas').add({
+        'numeroComanda': _siguienteNumeroComanda,
+        'items': _itemsComanda.map((item) => {
+          'nombre': item['nombre'],
+          'precio': item['precio'],
+          'cantidad': item['cantidad'],
+          'producto_id': item['id'] ?? null,
+        }).toList(),
+        'fecha_creacion': DateTime.now(),
+        'estado': 'pendiente',
+        'usuario_creador_uid': user?.uid,
+        'usuario_creador_nombre': username,
+        'comentario': _comentario,
+        'total': _calcularTotalComanda(),
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Comanda creada exitosamente')));
+      setState(() {
+        _itemsComanda.clear();
+        _comentario = '';
+        _siguienteNumeroComanda++;
+      });
+      _panelController.close();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al crear la comanda: $e')));
+    }
+  }
+
+  void _cerrarSesion() async {
+    final user = FirebaseAuth.instance.currentUser;
+    Widget destino = const LoginMenu();
+    if (user != null) {
+      final userDoc = await FirebaseFirestore.instance.collection('users').doc(user.uid).get();
+      if (userDoc.exists && userDoc.data()?['rol'] == 'Admin') {
+        destino = const ChefWaiter();
+      }
+    }
+    Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => destino));
   }
 
   @override
@@ -180,40 +182,7 @@ class _SeccionMenuState extends State<SeccionMenu> {
           IconButton(
             icon: const Icon(Icons.exit_to_app, color: Colors.black),
             tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-
-              if (user != null) {
-                final userDoc = await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .get();
-
-                final role = userDoc['rol'];
-
-                if (role == 'Admin') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChefWaiter()),
-                  );
-                } else if (role == 'Mesero') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginMenu()),
-                  );
-                } else {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginMenu()),
-                  );
-                }
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginMenu()),
-                );
-              }
-            },
+            onPressed: _cerrarSesion,
           ),
         ],
         bottom: PreferredSize(
@@ -222,47 +191,17 @@ class _SeccionMenuState extends State<SeccionMenu> {
             padding: const EdgeInsets.symmetric(horizontal: 8.0),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _filtro = 'TODO';
-                    });
-                  },
+              children: ['TODO', 'Plato', 'Bebida'].map((tipo) {
+                return ElevatedButton(
+                  onPressed: () => setState(() => _filtro = tipo),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _filtro == 'TODO' ? Colors.blue : Colors.grey[300],
-                    foregroundColor: _filtro == 'TODO' ? Colors.white : Colors.black,
+                    backgroundColor: _filtro == tipo ? Colors.blue : Colors.grey[300],
+                    foregroundColor: _filtro == tipo ? Colors.white : Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('TODO'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _filtro = 'Plato';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _filtro == 'Plato' ? Colors.blue : Colors.grey[300],
-                    foregroundColor: _filtro == 'Plato' ? Colors.white : Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text('PLATILLOS'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    setState(() {
-                      _filtro = 'Bebida';
-                    });
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _filtro == 'Bebida' ? Colors.blue : Colors.grey[300],
-                    foregroundColor: _filtro == 'Bebida' ? Colors.white : Colors.black,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: const Text('BEBIDAS'),
-                ),
-              ],
+                  child: Text(tipo == 'TODO' ? 'TODO' : '${tipo.toUpperCase()}S'),
+                );
+              }).toList(),
             ),
           ),
         ),
@@ -277,14 +216,18 @@ class _SeccionMenuState extends State<SeccionMenu> {
                       padding: const EdgeInsets.all(10),
                       itemCount: filteredMenuItems.length,
                       itemBuilder: (context, index) {
-                        final item = filteredMenuItems[index].data() as Map<String, dynamic>;
+                        final itemData = filteredMenuItems[index].data() as Map<String, dynamic>;
                         final itemId = filteredMenuItems[index].id;
+                        final nombre = itemData['nombre'] ?? 'Sin nombre';
+                        final precio = itemData['precio'] ?? 0;
+                        final descripcion = itemData['descripcion'] ?? '';
+                        final imagen = itemData['imagen'] ?? '';
+                        final tipo = itemData['tipo'] ?? '';
+
                         return Card(
                           elevation: 3,
                           margin: const EdgeInsets.symmetric(vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                           child: Row(
                             children: [
                               ClipRRect(
@@ -292,21 +235,11 @@ class _SeccionMenuState extends State<SeccionMenu> {
                                   topLeft: Radius.circular(15),
                                   bottomLeft: Radius.circular(15),
                                 ),
-                                child: item['imagen'] != ''
-                                    ? (item['imagen'].toString().startsWith('http')
-                                        ? Image.network(
-                                            item['imagen'],
-                                            width: 100,
-                                            height: 100,
-                                            fit: BoxFit.cover,
-                                          )
-                                        : Image.asset(
-                                            item['imagen'],
-                                            width: 100,
-                                            height: 100,
-                                            fit: BoxFit.cover,
-                                          ))
-                                    : Icon(item['tipo'] == 'Plato' ? Icons.restaurant : Icons.local_drink, size: 100),
+                                child: imagen != ''
+                                    ? (imagen.startsWith('http')
+                                        ? Image.network(imagen, width: 100, height: 100, fit: BoxFit.cover)
+                                        : Image.asset(imagen, width: 100, height: 100, fit: BoxFit.cover))
+                                    : Icon(tipo == 'Plato' ? Icons.restaurant : Icons.local_drink, size: 100),
                               ),
                               Expanded(
                                 child: Padding(
@@ -314,35 +247,21 @@ class _SeccionMenuState extends State<SeccionMenu> {
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        item['nombre'],
-                                        style: const TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
+                                      Text(nombre, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                                       const SizedBox(height: 6),
-                                      Text('Precio: \$${item['precio']}'),
+                                      Text('Precio: \$${precio.toString()}'),
                                       const SizedBox(height: 6),
-                                      Text(
-                                        item['descripcion'],
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
+                                      Text(descripcion, maxLines: 2, overflow: TextOverflow.ellipsis),
                                       const SizedBox(height: 10),
                                       Align(
                                         alignment: Alignment.bottomRight,
                                         child: ElevatedButton.icon(
-                                          onPressed: () {
-                                            _anadirItem({...item, 'id': itemId});
-                                          },
+                                          onPressed: () => _anadirItem({...itemData, 'id': itemId}),
                                           icon: const Icon(Icons.add),
                                           label: const Text("Añadir a comanda"),
                                           style: ElevatedButton.styleFrom(
                                             backgroundColor: const Color.fromARGB(255, 183, 208, 246),
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(20),
-                                            ),
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                                           ),
                                         ),
                                       ),
@@ -367,14 +286,11 @@ class _SeccionMenuState extends State<SeccionMenu> {
                   child: Container(
                     width: 40,
                     height: 5,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
                 const SizedBox(height: 15),
-                Text('Comanda #${_siguienteNumeroComanda - 1}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)), // Display current order number
+                Text('Comanda #${_siguienteNumeroComanda}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const Text('Items en Comanda', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                 Expanded(
                   child: _itemsComanda.isEmpty
@@ -385,23 +301,14 @@ class _SeccionMenuState extends State<SeccionMenu> {
                             final item = _itemsComanda[index];
                             return ListTile(
                               title: Text(item['nombre']),
-                              subtitle: Text('Cantidad: \$${item['cantidad']} - \$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}'),
+                              subtitle: Text('Cantidad: ${item['cantidad']} - \$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove),
-                                    onPressed: () => _decrementarCantidad(index),
-                                  ),
-                                  Text('\$${item['cantidad']}'),
-                                  IconButton(
-                                    icon: const Icon(Icons.add),
-                                    onPressed: () => _incrementarCantidad(index),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete, color: Colors.red),
-                                    onPressed: () => _eliminarItem(index),
-                                  ),
+                                  IconButton(icon: const Icon(Icons.remove), onPressed: () => _decrementarCantidad(index)),
+                                  Text('${item['cantidad']}'),
+                                  IconButton(icon: const Icon(Icons.add), onPressed: () => _incrementarCantidad(index)),
+                                  IconButton(icon: const Icon(Icons.delete, color: Colors.red), onPressed: () => _eliminarItem(index)),
                                 ],
                               ),
                             );
@@ -409,29 +316,29 @@ class _SeccionMenuState extends State<SeccionMenu> {
                         ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Total:',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      Text(
-                        '\$${_calcularTotalComanda().toStringAsFixed(2)}',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.green),
-                      ),
-                    ],
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  child: Text('Total: \$${_calcularTotalComanda().toStringAsFixed(2)}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: TextField(
+                    decoration: const InputDecoration(labelText: 'Comentario (opcional)'),
+                    onChanged: (value) => _comentario = value,
                   ),
                 ),
                 Padding(
                   padding: const EdgeInsets.all(16.0),
-                  child: ElevatedButton(
-                    onPressed: _guardarComanda,
-                    child: const Text('Guardar Comanda'),
-                    style: ElevatedButton.styleFrom(
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: _guardarComanda,
+                          child: const Text('Guardar Comanda'),
+                          style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 50)),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],

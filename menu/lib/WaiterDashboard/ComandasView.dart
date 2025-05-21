@@ -94,6 +94,7 @@ class ComandasView extends StatelessWidget {
               final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(fechaCreacion);
               final String nombreMesero = data['usuario_creador_nombre'] ?? 'Usuario Desconocido';
               final int numeroComanda = data['numeroComanda'] is int ? data['numeroComanda'] : 0; // Seguridad al acceder a numeroComanda
+              final String comentario = data['comentario'] ?? ''; // <-- Aquí extraemos el comentario
 
               double totalComanda = items.fold(0.0, (sum, item) => sum + (item['precio'] * item['cantidad']));
 
@@ -104,7 +105,8 @@ class ComandasView extends StatelessWidget {
                 estado: data['estado'],
                 totalComanda: totalComanda,
                 nombreMesero: nombreMesero,
-                numeroComanda: numeroComanda, // Usando el número de comanda
+                numeroComanda: numeroComanda,
+                comentario: comentario,  // <-- Pasamos el comentario
               );
             },
           );
@@ -122,6 +124,7 @@ class _ComandaCard extends StatelessWidget {
   final double totalComanda;
   final String nombreMesero;
   final int numeroComanda;
+  final String comentario;  // <-- Nuevo campo
 
   const _ComandaCard({
     required this.documentId,
@@ -131,6 +134,7 @@ class _ComandaCard extends StatelessWidget {
     required this.totalComanda,
     required this.nombreMesero,
     required this.numeroComanda,
+    required this.comentario,  // <-- Nuevo parámetro
   });
 
   @override
@@ -180,7 +184,22 @@ class _ComandaCard extends StatelessWidget {
                 'Creada por: $nombreMesero',
                 style: const TextStyle(fontSize: 14, color: Colors.black87, fontWeight: FontWeight.w500),
               ),
-              const SizedBox(height: 12.0),
+              const SizedBox(height: 8.0),
+
+              // Mostrar comentario si existe
+              if (comentario.isNotEmpty) ...[
+                const Text(
+                  'Comentario:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
+                ),
+                const SizedBox(height: 4.0),
+                Text(
+                  comentario,
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, fontStyle: FontStyle.italic),
+                ),
+                const SizedBox(height: 12.0),
+              ],
+
               const Text(
                 'Detalles de la Orden:',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
@@ -267,5 +286,6 @@ class _ComandaCard extends StatelessWidget {
     }
   }
 }
+
 
 //mesero@gmail.com
