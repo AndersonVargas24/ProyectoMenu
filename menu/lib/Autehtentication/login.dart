@@ -42,8 +42,9 @@ class _LoginMenuState extends State<LoginMenu> {
                     margin: const EdgeInsets.all(8),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
+                      borderRadius: BorderRadius.circular(8),
+                      color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5),
+                    ),
                     child: TextFormField(
                       controller: email,
                       validator: (value) {
@@ -65,8 +66,9 @@ class _LoginMenuState extends State<LoginMenu> {
                     margin: const EdgeInsets.all(8),
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5)),
+                      borderRadius: BorderRadius.circular(8),
+                      color: const Color.fromARGB(255, 97, 155, 202).withOpacity(.5),
+                    ),
                     child: TextFormField(
                       controller: password,
                       validator: (value) {
@@ -77,16 +79,32 @@ class _LoginMenuState extends State<LoginMenu> {
                       },
                       obscureText: !isvisible,
                       decoration: InputDecoration(
-                          icon: const Icon(Icons.lock),
-                          border: InputBorder.none,
-                          hintText: "Contraseña",
-                          suffixIcon: IconButton(
-                              onPressed: () {
-                                setState(() {
-                                  isvisible = !isvisible;
-                                });
-                              },
-                              icon: Icon(isvisible ? Icons.visibility : Icons.visibility_off))),
+                        icon: const Icon(Icons.lock),
+                        border: InputBorder.none,
+                        hintText: "Contraseña",
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              isvisible = !isvisible;
+                            });
+                          },
+                          icon: Icon(
+                            isvisible ? Icons.visibility : Icons.visibility_off,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () {
+                        mostrarDialogoRecuperarContrasena(context, context);
+                      },
+                      child: const Text(
+                        '¿Olvidaste tu contraseña?',
+                        style: TextStyle(color: Colors.blue),
+                      ),
                     ),
                   ),
                   const SizedBox(height: 10),
@@ -94,85 +112,88 @@ class _LoginMenuState extends State<LoginMenu> {
                     height: 55,
                     width: MediaQuery.of(context).size.width * 0.9,
                     decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                        color: const Color.fromARGB(255, 16, 60, 134)),
+                      borderRadius: BorderRadius.circular(8),
+                      color: const Color.fromARGB(255, 16, 60, 134),
+                    ),
                     child: TextButton(
-                        onPressed: () async {
-                          if (formkey.currentState!.validate()) {
-                            try {
-                              print("🔐 Iniciando sesión...");
-                              final credential = await FirebaseAuth.instance
-                                  .signInWithEmailAndPassword(
-                                      email: email.text.trim(),
-                                      password: password.text.trim());
+                      onPressed: () async {
+                        if (formkey.currentState!.validate()) {
+                          try {
+                            final credential = await FirebaseAuth.instance
+                                .signInWithEmailAndPassword(
+                                    email: email.text.trim(),
+                                    password: password.text.trim());
 
-                              final uid = credential.user!.uid;
-                              print("✅ Sesión iniciada, buscando rol...");
+                            final uid = credential.user!.uid;
+                            final doc = await FirebaseFirestore.instance
+                                .collection('users')
+                                .doc(uid)
+                                .get();
 
-                              final doc = await FirebaseFirestore.instance
-                                  .collection('users')
-                                  .doc(uid)
-                                  .get();
+                            if (doc.exists && doc.data()!.containsKey('rol')) {
+                              final rol = doc['rol'];
 
-                              if (doc.exists && doc.data()!.containsKey('rol')) {
-                                final rol = doc['rol'];
-                                print("🎯 Rol encontrado: $rol");
-
-                                if (rol == 'Chef') {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => const PrincipalChef()));
-                                } else if (rol == 'Mesero') {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => const Principalwaiter()));
-                                } else if (rol == 'Admin') {
-                                  Navigator.pushReplacement(
-                                      context,
-                                      MaterialPageRoute(
-                                          builder: (context) => const ChefWaiter()));
-                                } else {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text("Rol no válido")),
-                                  );
-                                }
+                              if (rol == 'Chef') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const PrincipalChef()),
+                                );
+                              } else if (rol == 'Mesero') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const Principalwaiter()),
+                                );
+                              } else if (rol == 'Admin') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const ChefWaiter()),
+                                );
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text("No se encontró el rol del usuario")),
+                                  const SnackBar(content: Text("Rol no válido")),
                                 );
                               }
-                            } on FirebaseAuthException catch (e) {
-                              String errorMsg = "Error al iniciar sesión";
-                              if (e.code == 'user-not-found') {
-                                errorMsg = 'No existe un usuario con este correo';
-                              } else if (e.code == 'wrong-password') {
-                                errorMsg = 'Contraseña incorrecta';
-                              }
+                            } else {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text("❌ $errorMsg")),
+                                const SnackBar(content: Text("No se encontró el rol del usuario")),
                               );
                             }
+                          } on FirebaseAuthException catch (e) {
+                            String errorMsg = "Error al iniciar sesión";
+                            if (e.code == 'user-not-found') {
+                              errorMsg = 'No existe un usuario con este correo';
+                            } else if (e.code == 'wrong-password') {
+                              errorMsg = 'Contraseña incorrecta';
+                            }
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("❌ $errorMsg")),
+                            );
                           }
-                        },
-                        child: const Text(
-                          "LOGIN",
-                          style: TextStyle(color: Colors.white),
-                        )),
+                        }
+                      },
+                      child: const Text(
+                        "LOGIN",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
                   ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("No tienes cuenta?"),
+                      const Text("¿No tienes cuenta?"),
                       TextButton(
-                          onPressed: () {
-                            Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (context) => const RegisterMenu()));
-                          },
-                          child: const Text("REGISTRATE"))
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) => const RegisterMenu()),
+                          );
+                        },
+                        child: const Text("REGÍSTRATE"),
+                      ),
                     ],
                   )
                 ],
@@ -181,6 +202,89 @@ class _LoginMenuState extends State<LoginMenu> {
           ),
         ),
       ),
+    );
+  }
+
+  /// 🔐 Diálogo de recuperación de contraseña (con corrección de contexto)
+  void mostrarDialogoRecuperarContrasena(
+      BuildContext dialogContext, BuildContext scaffoldContext) {
+    final TextEditingController emailController = TextEditingController();
+
+    showDialog(
+      context: dialogContext,
+      builder: (_) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.email_outlined, size: 50, color: Colors.blue),
+                const SizedBox(height: 10),
+                const Text(
+                  'Recuperar contraseña',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 10),
+                const Text(
+                  'Ingresa tu correo electrónico y te enviaremos un enlace para restablecer tu contraseña.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                TextField(
+                  controller: emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: InputDecoration(
+                    hintText: 'Correo electrónico',
+                    prefixIcon: const Icon(Icons.mail),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      child: const Text('Cancelar'),
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      onPressed: () async {
+                        final correo = emailController.text.trim();
+                        Navigator.of(dialogContext).pop();
+                        try {
+                          await FirebaseAuth.instance
+                              .sendPasswordResetEmail(email: correo);
+
+                          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                            const SnackBar(
+                                content: Text('📧 Correo de recuperación enviado')),
+                          );
+                        } catch (e) {
+                          ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                            SnackBar(content: Text('❌ Error: ${e.toString()}')),
+                          );
+                        }
+                      },
+                      child: const Text('Enviar'),
+                    ),
+                  ],
+                )
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

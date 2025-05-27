@@ -55,41 +55,7 @@ class _SeccionMenuState extends State<MenuChef> {
         title: const Text("Sección del Menú"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app),
-            tooltip: 'Cerrar sesión',
-            onPressed: () async {
-              final user = FirebaseAuth.instance.currentUser;
-
-              if (user != null) {
-                final userDoc = await FirebaseFirestore.instance
-                    .collection('users')
-                    .doc(user.uid)
-                    .get();
-
-                final role = userDoc['rol'];
-
-                if (role == 'Admin') {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const ChefWaiter()),
-                  );
-                } else {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (context) => const LoginMenu()),
-                  );
-                }
-              } else {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginMenu()),
-                );
-              }
-            },
-          ),
-        ],
+        automaticallyImplyLeading: false, // Esta línea quita la flecha
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(50.0),
           child: Padding(
@@ -104,7 +70,7 @@ class _SeccionMenuState extends State<MenuChef> {
                     });
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _filtro == 'TODO' ? Colors.blue : Colors.grey[300],
+                    backgroundColor: _filtro == 'TODO' ? const Color.fromARGB(255, 33, 150, 243) : Colors.grey[300],
                     foregroundColor: _filtro == 'TODO' ? Colors.white : Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),

@@ -354,65 +354,54 @@ class _SeccionMenuState extends State<SeccionMenu> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-          _esModoEdicion ? "Editar Comanda" : "Sección del Menú", 
-          style: const TextStyle(
-            color: Colors.white, 
-            fontWeight: FontWeight.bold,
-            fontSize: 22,
-          ),
-        ),
-        backgroundColor: Colors.blue[700],
-        foregroundColor: Colors.white,
-        elevation: 0,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(
-            bottom: Radius.circular(15),
-          ),
-        ),
-        leading: _esModoEdicion 
-            ? IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
-              )
-            : null,
-        actions: [
-          if (!_esModoEdicion)
-            IconButton(
-              icon: const Icon(Icons.exit_to_app, color: Colors.white),
-              tooltip: 'Cerrar sesión',
-              onPressed: _cerrarSesion,
+  title: Text(
+    _esModoEdicion ? "Editar Comanda" : "Sección del Menú", 
+    style: const TextStyle(
+      color: Colors.white, 
+      fontWeight: FontWeight.bold,
+      fontSize: 22,
+    ),
+  ),
+  backgroundColor: Colors.blue[700],
+  foregroundColor: Colors.white,
+  elevation: 0,
+  shape: const RoundedRectangleBorder(
+    borderRadius: BorderRadius.vertical(
+      bottom: Radius.circular(15),
+    ),
+  ),
+  leading: null,
+  automaticallyImplyLeading: false, // 👈 esto quita la flecha por completo
+  actions: [],
+  bottom: PreferredSize(
+    preferredSize: const Size.fromHeight(60.0),
+    child: Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: ['TODO', 'Plato', 'Bebida'].map((tipo) {
+          return ElevatedButton(
+            onPressed: () => setState(() => _filtro = tipo),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _filtro == tipo ? Colors.white : Colors.blue[600],
+              foregroundColor: _filtro == tipo ? Colors.blue[700] : Colors.white,
+              elevation: _filtro == tipo ? 3 : 0,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
             ),
-        ],
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60.0),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: ['TODO', 'Plato', 'Bebida'].map((tipo) {
-                return ElevatedButton(
-                  onPressed: () => setState(() => _filtro = tipo),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _filtro == tipo ? Colors.white : Colors.blue[600],
-                    foregroundColor: _filtro == tipo ? Colors.blue[700] : Colors.white,
-                    elevation: _filtro == tipo ? 3 : 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                  ),
-                  child: Text(
-                    tipo == 'TODO' ? 'TODO' : '${tipo.toUpperCase()}S',
-                    style: TextStyle(
-                      fontWeight: _filtro == tipo ? FontWeight.bold : FontWeight.normal,
-                      fontSize: 14,
-                    ),
-                  ),
-                );
-              }).toList(),
+            child: Text(
+              tipo == 'TODO' ? 'TODO' : '${tipo.toUpperCase()}S',
+              style: TextStyle(
+                fontWeight: _filtro == tipo ? FontWeight.bold : FontWeight.normal,
+                fontSize: 14,
+              ),
             ),
-          ),
-        ),
+          );
+        }).toList(),
       ),
+    ),
+  ),
+),
       body: Container(
         color: Colors.blue[50],
         child: Stack(
