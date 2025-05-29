@@ -371,7 +371,7 @@ class _SeccionMenuState extends State<SeccionMenu> {
     ),
   ),
   leading: null,
-  automaticallyImplyLeading: false, // 👈 esto quita la flecha por completo
+  automaticallyImplyLeading: false, // esto quita la flecha por completo
   actions: [],
   bottom: PreferredSize(
     preferredSize: const Size.fromHeight(60.0),

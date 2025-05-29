@@ -280,7 +280,7 @@ class DrawerItem {
   });
 }
 
-// 🔐 Función mejorada para cerrar sesión con redirección según rol
+// 🔐 Función para cerrar sesión con redirección según rol
 Future<void> logoutConRedireccionPorRol(BuildContext context) async {
   final user = FirebaseAuth.instance.currentUser;
 

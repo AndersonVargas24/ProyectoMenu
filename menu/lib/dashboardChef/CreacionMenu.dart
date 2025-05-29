@@ -156,23 +156,10 @@ class _CreacionMenuState extends State<CreacionMenu> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F3F3),
+      backgroundColor: const Color.fromARGB(255, 255, 255, 255),
       appBar: AppBar(
         title: const Text("Nuevo plato"),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => const PrincipalChef(currentIndex: 0),
-              ),
-            );
-          },
-        ),
-        backgroundColor: const Color.fromRGBO(224, 224, 224, 1),
-        foregroundColor: Colors.black,
-        elevation: 5,
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -248,7 +235,7 @@ class _CreacionMenuState extends State<CreacionMenu> {
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: const Color.fromRGBO(224, 224, 224, 1),
+                color: const Color.fromARGB(255, 233, 235, 235),
                 borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(

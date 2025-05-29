@@ -1,5 +1,8 @@
+import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 class EditarPlatoPage extends StatefulWidget {
   final String itemId;
@@ -17,6 +20,8 @@ class _EditarPlatoPageState extends State<EditarPlatoPage> {
   late TextEditingController _descripcionController;
   String _tipo = 'Plato';
   String _imagen = '';
+  bool _cargando = true;
+  File? _nuevaImagen;
 
   @override
   void initState() {
@@ -33,34 +38,88 @@ class _EditarPlatoPageState extends State<EditarPlatoPage> {
     _descripcionController = TextEditingController(text: data['descripcion']);
     _tipo = data['tipo'];
     _imagen = data['imagen'];
+
+    setState(() {
+      _cargando = false;
+    });
+  }
+
+  Future<void> _seleccionarImagen() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _nuevaImagen = File(pickedFile.path);
+      });
+    }
+  }
+
+  Future<String?> _subirImagen(File imageFile) async {
+    try {
+      final storageRef = FirebaseStorage.instance
+          .ref()
+          .child('platos/${DateTime.now().millisecondsSinceEpoch}.jpg');
+      await storageRef.putFile(imageFile);
+      return await storageRef.getDownloadURL();
+    } catch (e) {
+      print('Error al subir imagen: $e');
+      return null;
+    }
   }
 
   Future<void> _guardarEdicion() async {
     if (_formKey.currentState!.validate()) {
+      String urlFinal = _imagen;
+
+      if (_nuevaImagen != null) {
+        final subida = await _subirImagen(_nuevaImagen!);
+        if (subida != null) {
+          urlFinal = subida;
+        }
+      }
+
       final updatedPlato = {
         'nombre': _nombreController.text,
         'precio': double.tryParse(_precioController.text) ?? 0,
         'descripcion': _descripcionController.text,
         'tipo': _tipo,
-        'imagen': _imagen,
+        'imagen': urlFinal,
       };
 
       try {
         await FirebaseFirestore.instance.collection('menu').doc(widget.itemId).update(updatedPlato);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Plato actualizado exitosamente')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Plato actualizado exitosamente')),
+        );
         Navigator.pop(context);
       } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al actualizar: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al actualizar: $e')),
+        );
       }
     }
   }
 
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: Colors.grey[100],
+      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    if (_cargando) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Editar Plato'),
-        backgroundColor: Colors.blue,
+        backgroundColor: const Color.fromARGB(255, 33, 150, 243),
         actions: [
           IconButton(
             icon: const Icon(Icons.save),
@@ -68,138 +127,97 @@ class _EditarPlatoPageState extends State<EditarPlatoPage> {
           ),
         ],
       ),
-      body: FutureBuilder(
-        future: FirebaseFirestore.instance.collection('menu').doc(widget.itemId).get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data == null) {
-            return const Center(child: Text("No se encontró el plato"));
-          }
-
-          final data = snapshot.data as DocumentSnapshot;
-          final item = data.data() as Map<String, dynamic>;
-
-          return Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Form(
-              key: _formKey,
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('Nombre del Plato', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _nombreController,
+                  decoration: _inputDecoration('Ej. Arroz con Pollo'),
+                  validator: (value) => value == null || value.isEmpty ? 'Ingrese el nombre del plato' : null,
+                ),
+                const SizedBox(height: 16),
+                const Text('Precio', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _precioController,
+                  decoration: _inputDecoration('Ej. 12000'),
+                  keyboardType: TextInputType.number,
+                  validator: (value) => value == null || value.isEmpty ? 'Ingrese el precio' : null,
+                ),
+                const SizedBox(height: 16),
+                const Text('Descripción', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                TextFormField(
+                  controller: _descripcionController,
+                  decoration: _inputDecoration('Ej. Plato típico con pollo, arroz y verduras.'),
+                  maxLines: 3,
+                  validator: (value) => value == null || value.isEmpty ? 'Ingrese la descripción' : null,
+                ),
+                const SizedBox(height: 16),
+                const Text('Tipo', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 10,
                   children: [
-                    const Text(
-                      'Nombre del Plato',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ChoiceChip(
+                      label: const Text('Plato'),
+                      selected: _tipo == 'Plato',
+                      selectedColor: const Color.fromARGB(255, 33, 150, 243),
+                      onSelected: (selected) => setState(() => _tipo = 'Plato'),
                     ),
-                    TextFormField(
-                      controller: _nombreController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Escribe el nombre del plato',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa el nombre del plato';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Precio',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextFormField(
-                      controller: _precioController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Escribe el precio',
-                      ),
-                      keyboardType: TextInputType.number,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa el precio';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Descripción',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextFormField(
-                      controller: _descripcionController,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'Escribe una breve descripción',
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Por favor ingresa la descripción';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Tipo de Plato',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    Row(
-                      children: [
-                        ChoiceChip(
-                          label: const Text('Plato'),
-                          selected: _tipo == 'Plato',
-                          onSelected: (selected) {
-                            setState(() {
-                              _tipo = 'Plato';
-                            });
-                          },
-                        ),
-                        const SizedBox(width: 10),
-                        ChoiceChip(
-                          label: const Text('Bebida'),
-                          selected: _tipo == 'Bebida',
-                          onSelected: (selected) {
-                            setState(() {
-                              _tipo = 'Bebida';
-                            });
-                          },
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'Imagen del Plato (URL o asset)',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    TextFormField(
-                      initialValue: _imagen,
-                      decoration: const InputDecoration(
-                        border: OutlineInputBorder(),
-                        hintText: 'URL de la imagen o nombre del asset',
-                      ),
-                      onChanged: (value) {
-                        setState(() {
-                          _imagen = value;
-                        });
-                      },
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: _guardarEdicion,
-                      child: const Text('Guardar Cambios'),
+                    ChoiceChip(
+                      label: const Text('Bebida'),
+                      selected: _tipo == 'Bebida',
+                      selectedColor: const Color.fromARGB(255, 33, 150, 243),
+                      onSelected: (selected) => setState(() => _tipo = 'Bebida'),
                     ),
                   ],
                 ),
-              ),
+                const SizedBox(height: 16),
+                const Text('Imagen', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const SizedBox(height: 8),
+                Center(
+                  child: GestureDetector(
+                    onTap: _seleccionarImagen,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: _nuevaImagen != null
+                          ? Image.file(_nuevaImagen!, height: 200, width: double.infinity, fit: BoxFit.cover)
+                          : (_imagen.isNotEmpty
+                              ? Image.network(_imagen, height: 200, width: double.infinity, fit: BoxFit.cover)
+                              : Container(
+                                  height: 200,
+                                  width: double.infinity,
+                                  color: Colors.grey[300],
+                                  child: const Icon(Icons.add_a_photo, size: 50),
+                                )),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Center(
+                  child: ElevatedButton.icon(
+                    onPressed: _guardarEdicion,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color.fromARGB(255, 33, 150, 243),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    icon: const Icon(Icons.save),
+                    label: const Text('Guardar Cambios', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
             ),
-          );
-        },
+          ),
+        ),
       ),
     );
   }
