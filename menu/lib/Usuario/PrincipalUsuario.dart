@@ -1,29 +1,29 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:menu/Autehtentication/ChefWaiter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:menu/UsuarioDashBoard/ComandaUsuario.dart';
+import 'package:menu/UsuarioDashBoard/MenuUsuario.dart';
 import 'package:menu/Autehtentication/login.dart';
-import 'package:menu/WaiterDashboard/SeccionMenu.dart';
-import 'package:menu/WaiterDashboard/ComandasView.dart';
-import 'package:menu/WaiterDashboard/HistorialComanda.dart';
+import 'package:menu/Autehtentication/ChefWaiter.dart';
 
-class Principalwaiter extends StatefulWidget {
+
+
+class Principalusuario extends StatefulWidget {
   final int currentIndex;
-  const Principalwaiter({super.key, this.currentIndex = 0});
+  const Principalusuario({super.key, this.currentIndex = 0});
 
   @override
-  State<Principalwaiter> createState() => _PrincipalwaiterState();
+  State<Principalusuario> createState() => _PrincipalusuarioState();
 }
 
-class _PrincipalwaiterState extends State<Principalwaiter> {
+class _PrincipalusuarioState extends State<Principalusuario> {
   late int _selectedIndex;
-  String _rolUsuario = "Hola, Mesero";
-  
+  String _rolUsuario = 'Hola, Usuario';
 
-  final List<Widget> _pages = <Widget>[
-    const SeccionMenu(),
-    const ComandasView(),
-    const HistorialComanda(),
+   final List<Widget> _pages = <Widget>[
+    const Menuusuario(),
+    const Comandausuario(),
   ];
 
   final List<DrawerItem> _drawerItems = [
@@ -36,13 +36,10 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
     title: "Comandas",
     subtitle: "Ver Comandas Actuales"
     ),
-    DrawerItem(icon: Icons.history,
-    title: "Historial",
-    subtitle: "Ver Historial de Comandas"
-    ),
   ];
 
-  @override
+
+ @override
   void initState() {
     super.initState();
     _selectedIndex = widget.currentIndex;
@@ -284,7 +281,7 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
 
       await FirebaseAuth.instance.signOut();
 
-      if (rol == 'Mesero') {
+      if (rol == 'Usuario') {
         Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -313,3 +310,4 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
         builder: (context) => const ChefWaiter()));
   }
 }
+

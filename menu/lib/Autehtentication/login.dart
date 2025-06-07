@@ -151,6 +151,14 @@ class _LoginMenuState extends State<LoginMenu> {
                                   MaterialPageRoute(
                                       builder: (context) => const ChefWaiter()),
                                 );
+                                } else if (rol == 'Usuario') {
+                                Navigator.pushReplacement(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) => const Principalwaiter()),
+                                );
+
+
                               } else {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(content: Text("Rol no válido")),

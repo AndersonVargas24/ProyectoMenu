@@ -118,7 +118,7 @@ class _RegisterMenuState extends State<RegisterMenu> {
                       value: selectedRole,
                       hint: const Text("Selecciona un rol"),
                       decoration: const InputDecoration.collapsed(hintText: ""),
-                      items: ['Chef', 'Mesero', 'Admin'].map((role) {
+                      items: ['Chef', 'Mesero', 'Admin', 'Usuario'].map((role) {
                         return DropdownMenuItem(
                           value: role,
                           child: Text(role),
