@@ -24,7 +24,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
   final List<Widget> _pages = <Widget>[
     const MenuChef(),
     const CreacionMenu(),
-    const ComandaChef(),
+    const Comandachef(),
     const HistorialComanda(),
     Inventario(),
   ];
