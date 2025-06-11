@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/dashboardChef/CreacionMenu.dart';
@@ -6,8 +8,6 @@ import 'package:menu/dashboardChef/HistorialComanda.dart';
 import 'package:menu/dashboardChef/Inventario.dart';
 import 'package:menu/dashboardChef/MenuChef.dart';
 import 'package:menu/dashboardChef/ComandaChef.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PrincipalChef extends StatefulWidget {
   final int currentIndex;
@@ -67,14 +67,20 @@ class _PrincipalChefState extends State<PrincipalChef> {
   Future<void> obtenerRolUsuario() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
-      if (doc.exists && doc.data()!.containsKey('rol')) {
-        setState(() {
-          _rolUsuario = doc['rol'];
-        });
+      try {
+        final doc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .get();
+
+        final data = doc.data();
+        if (data != null && data.containsKey('rol')) {
+          setState(() {
+            _rolUsuario = data['rol'];
+          });
+        }
+      } catch (e) {
+        print("⚠️ Error al obtener rol: $e");
       }
     }
   }
@@ -165,18 +171,16 @@ class _PrincipalChefState extends State<PrincipalChef> {
                   final isSelected = _selectedIndex == index;
 
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color: isSelected
-                          ? Colors.orange.shade50
-                          : Colors.transparent,
+                      color:
+                          isSelected ? Colors.orange.shade50 : Colors.transparent,
                     ),
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 4,
-                      ),
+                          horizontal: 16, vertical: 4),
                       leading: Container(
                         width: 40,
                         height: 40,
@@ -280,48 +284,48 @@ class DrawerItem {
   });
 }
 
-// 🔐 Función para cerrar sesión con redirección según rol
 Future<void> logoutConRedireccionPorRol(BuildContext context) async {
   final user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {
-    final doc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .get();
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .get();
 
-    if (doc.exists && doc.data()!.containsKey('rol')) {
-      final rol = doc['rol'];
-      print("🎯 Rol encontrado: $rol");
+      final data = doc.data();
+      final rol = data != null ? data['rol'] : null;
 
       await FirebaseAuth.instance.signOut();
 
       if (rol == 'Chef') {
         Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const LoginMenu()));
-     } else if (rol == 'Admin') {
-       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+          context,
+          MaterialPageRoute(builder: (_) => const LoginMenu()),
+        );
+      } else if (rol == 'Admin') {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const ChefWaiter()),
+        );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Rol no válido")),
         );
         Navigator.pushReplacementNamed(context, '/login');
       }
-    } else {
-       Navigator.pushReplacement(
+    } catch (e) {
+      print("⚠️ Error cerrando sesión: $e");
+      Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+        MaterialPageRoute(builder: (_) => const ChefWaiter()),
+      );
     }
   } else {
-     Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const ChefWaiter()),
+    );
   }
 }
