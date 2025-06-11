@@ -262,17 +262,17 @@ Future<void> _seleccionarHoraEntrega() async {
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            primaryColor: Colors.green[700],
+            primaryColor: Colors.blue[700],
             colorScheme: ColorScheme.light(
-              primary: Colors.green[700]!,
-              secondary: Colors.green[500]!,
+              primary: const Color.fromARGB(255, 222, 223, 223)!,
+              secondary: Colors.blue[500]!,
             ),
             timePickerTheme: TimePickerThemeData(
               backgroundColor: Colors.white,
-              hourMinuteTextColor: Colors.green[700],
-              dayPeriodTextColor: Colors.green[700],
-              dialHandColor: Colors.green[700],
-              dialTextColor: Colors.green[700],
+              hourMinuteTextColor: Colors.blue[700],
+              dayPeriodTextColor: Colors.blue[56],
+              dialHandColor: Colors.blue[700],
+              dialTextColor: Colors.blue[56],
             ),
           ),
           child: child!,
