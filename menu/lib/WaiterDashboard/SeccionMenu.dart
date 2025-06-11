@@ -44,44 +44,52 @@ class _SeccionMenuState extends State<SeccionMenu> {
   }
 
   Future<void> _inicializarComanda() async {
-    if (widget.comandaParaEditar != null) {
-      // Modo edición
-      _esModoEdicion = true;
-      _comandaIdParaEditar = widget.comandaParaEditar!['id'];
+  if (widget.comandaParaEditar != null) {
+    // Modo edición
+    _esModoEdicion = true;
+    _comandaIdParaEditar = widget.comandaParaEditar!['id'];
+    
+    setState(() {
+      _siguienteNumeroComanda = widget.comandaParaEditar!['numeroComanda'] ?? 1;
+      _nombreComanda = widget.comandaParaEditar!['nombreComanda'] ?? 'Comanda #$_siguienteNumeroComanda';
+      _nombreComandaController.text = _nombreComanda;
+      _comentario = widget.comandaParaEditar!['comentario'] ?? '';
       
-      setState(() {
-        _siguienteNumeroComanda = widget.comandaParaEditar!['numeroComanda'] ?? 1;
-        _nombreComanda = widget.comandaParaEditar!['nombreComanda'] ?? 'Comanda #$_siguienteNumeroComanda';
-        _nombreComandaController.text = _nombreComanda;
-        _comentario = widget.comandaParaEditar!['comentario'] ?? '';
-        
-        // Cargar los items existentes
-        if (widget.comandaParaEditar!['items'] != null) {
-          _itemsComanda = List<Map<String, dynamic>>.from(
-            widget.comandaParaEditar!['items'].map((item) => {
-              'nombre': item['nombre'],
-              'precio': item['precio'],
-              'cantidad': item['cantidad'],
-              'id': item['producto_id'],
-              'tipo': item['tipo'] ?? 'Plato', // Valor por defecto si no existe
-              'descripcion': item['descripcion'] ?? '',
-              'imagen': item['imagen'] ?? '',
-            })
-          );
-        }
-      });
+      // Cargar la hora de entrega si existe
+      _horaEntrega = widget.comandaParaEditar!['horaEntrega'];
       
-      // Abrir el panel si hay items
-      if (_itemsComanda.isNotEmpty) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _panelController.open();
-        });
+      // Cargar los items existentes
+      if (widget.comandaParaEditar!['items'] != null) {
+        _itemsComanda = List<Map<String, dynamic>>.from(
+          widget.comandaParaEditar!['items'].map((item) => {
+            'nombre': item['nombre'],
+            'precio': item['precio'],
+            'cantidad': item['cantidad'],
+            'id': item['producto_id'],
+            'tipo': item['tipo'] ?? 'Plato', // Valor por defecto si no existe
+            'descripcion': item['descripcion'] ?? '',
+            'imagen': item['imagen'] ?? '',
+          })
+        );
       }
-    } else {
-      // Modo creación
-      await _cargarUltimoNumeroComanda();
+    });
+    
+    // Abrir el panel si hay items
+    if (_itemsComanda.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _panelController.open();
+      });
     }
+  } else {
+    // Modo creación
+    await _cargarUltimoNumeroComanda();
+    
+    // Inicializar hora de entrega como null (mostrará "Ahora")
+    setState(() {
+      _horaEntrega = null;
+    });
   }
+}
 
   Future<void> _cargarUltimoNumeroComanda() async {
     final snapshot = await FirebaseFirestore.instance
@@ -242,101 +250,179 @@ class _SeccionMenuState extends State<SeccionMenu> {
     }
   }
 
-  Future<void> _guardarComanda() async {
-    if (_itemsComanda.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('La comanda está vacía'),
-          backgroundColor: Colors.red[400],
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        )
-      );
-      return;
+// Variable para almacenar la hora de entrega
+String? _horaEntrega;
+
+// Método para seleccionar la hora de entrega
+Future<void> _seleccionarHoraEntrega() async {
+  try {
+    final TimeOfDay? horaSeleccionada = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.green[700],
+            colorScheme: ColorScheme.light(
+              primary: Colors.green[700]!,
+              secondary: Colors.green[500]!,
+            ),
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: Colors.white,
+              hourMinuteTextColor: Colors.green[700],
+              dayPeriodTextColor: Colors.green[700],
+              dialHandColor: Colors.green[700],
+              dialTextColor: Colors.green[700],
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (horaSeleccionada != null && mounted) {
+      setState(() {
+        _horaEntrega = horaSeleccionada.format(context);
+      });
     }
-    
-    try {
-      final user = FirebaseAuth.instance.currentUser;
-      final username = await _getUsername(user?.uid);
-
-      final comandaData = {
-        'numeroComanda': _siguienteNumeroComanda,
-        'nombreComanda': _nombreComanda,
-        'items': _itemsComanda.map((item) => {
-          'nombre': item['nombre'],
-          'precio': item['precio'],
-          'cantidad': item['cantidad'],
-          'producto_id': item['id'] ?? null,
-          'tipo': item['tipo'] ?? 'Plato',
-          'descripcion': item['descripcion'] ?? '',
-          'imagen': item['imagen'] ?? '',
-        }).toList(),
-        'fecha_creacion': _esModoEdicion 
-            ? widget.comandaParaEditar!['fecha_creacion'] 
-            : DateTime.now(),
-        'fecha_modificacion': _esModoEdicion ? DateTime.now() : null,
-        'estado': _esModoEdicion 
-            ? widget.comandaParaEditar!['estado'] 
-            : 'pendiente',
-        'usuario_creador_uid': _esModoEdicion 
-            ? widget.comandaParaEditar!['usuario_creador_uid'] 
-            : user?.uid,
-        'usuario_creador_nombre': _esModoEdicion 
-            ? widget.comandaParaEditar!['usuario_creador_nombre'] 
-            : username,
-        'usuario_modificador_uid': _esModoEdicion ? user?.uid : null,
-        'usuario_modificador_nombre': _esModoEdicion ? username : null,
-        'comentario': _comentario,
-        'total': _calcularTotalComanda(),
-      };
-
-      if (_esModoEdicion && _comandaIdParaEditar != null) {
-        // Actualizar comanda existente
-        await FirebaseFirestore.instance
-            .collection('comandas')
-            .doc(_comandaIdParaEditar)
-            .update(comandaData);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Comanda actualizada exitosamente'),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          )
-        );
-      } else {
-        // Crear nueva comanda
-        await FirebaseFirestore.instance.collection('comandas').add(comandaData);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Comanda creada exitosamente'),
-            backgroundColor: Colors.green[600],
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(10),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          )
-        );
-      }
-
-      // Navegar hacia atrás después de guardar
-      Navigator.pop(context, true); // Retorna true para indicar que se guardó exitosamente
-      
-    } catch (e) {
+  } catch (e) {
+    debugPrint('Error al seleccionar hora: $e');
+    // Mostrar mensaje de error opcional
+    if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Error al ${_esModoEdicion ? "actualizar" : "crear"} la comanda: $e'),
-          backgroundColor: Colors.red[600],
-          behavior: SnackBarBehavior.floating,
-          margin: const EdgeInsets.all(10),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        )
+          content: Text('Error al seleccionar la hora'),
+          backgroundColor: Colors.red[400],
+        ),
       );
     }
   }
+}
+
+// Método para resetear la hora (opcional)
+void _resetearHoraEntrega() {
+  if (mounted) {
+    setState(() {
+      _horaEntrega = null;
+    });
+  }
+}
+
+Future<void> _guardarComanda() async {
+  if (_itemsComanda.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text('La comanda está vacía'),
+        backgroundColor: Colors.red[400],
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      )
+    );
+    return;
+  }
+  
+  try {
+    final user = FirebaseAuth.instance.currentUser;
+    final username = await _getUsername(user?.uid);
+
+    final comandaData = {
+      'numeroComanda': _siguienteNumeroComanda,
+      'nombreComanda': _nombreComanda,
+      'horaEntrega': _horaEntrega, // <-- AGREGAR ESTA LÍNEA
+      'items': _itemsComanda.map((item) => {
+        'nombre': item['nombre'],
+        'precio': item['precio'],
+        'cantidad': item['cantidad'],
+        'producto_id': item['id'] ?? null,
+        'tipo': item['tipo'] ?? 'Plato',
+        'descripcion': item['descripcion'] ?? '',
+        'imagen': item['imagen'] ?? '',
+      }).toList(),
+      'fecha_creacion': _esModoEdicion 
+          ? widget.comandaParaEditar!['fecha_creacion'] 
+          : DateTime.now(),
+      'fecha_modificacion': _esModoEdicion ? DateTime.now() : null,
+      'estado': _esModoEdicion 
+          ? widget.comandaParaEditar!['estado'] 
+          : 'pendiente',
+      'usuario_creador_uid': _esModoEdicion 
+          ? widget.comandaParaEditar!['usuario_creador_uid'] 
+          : user?.uid,
+      'usuario_creador_nombre': _esModoEdicion 
+          ? widget.comandaParaEditar!['usuario_creador_nombre'] 
+          : username,
+      'usuario_modificador_uid': _esModoEdicion ? user?.uid : null,
+      'usuario_modificador_nombre': _esModoEdicion ? username : null,
+      'comentario': _comentario,
+      'total': _calcularTotalComanda(),
+    };
+
+    if (_esModoEdicion && _comandaIdParaEditar != null) {
+      // Actualizar comanda existente
+      await FirebaseFirestore.instance
+          .collection('comandas')
+          .doc(_comandaIdParaEditar)
+          .update(comandaData);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Comanda actualizada exitosamente'),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        )
+      );
+    } else {
+      // Crear nueva comanda
+      await FirebaseFirestore.instance.collection('comandas').add(comandaData);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Comanda creada exitosamente'),
+          backgroundColor: Colors.green[600],
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(10),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        )
+      );
+    }
+    // Limpiar la comanda después de guardar 
+    setState(() {
+      _itemsComanda.clear();
+      _comentario = '';
+      _horaEntrega = null; // Resetear hora de entrega
+      if (!_esModoEdicion) {
+        _siguienteNumeroComanda++;
+        _nombreComanda = 'Comanda #$_siguienteNumeroComanda';
+        _nombreComandaController.text = _nombreComanda;
+      }
+    });
+
+    // Cerrar el panel
+    if (_panelController.isPanelOpen) {
+      _panelController.close();
+    }
+
+    // Si estamos en modo edición, regresar a la pantalla anterior
+    if (_esModoEdicion) {
+      Navigator.of(context).pop();
+    }
+
+  } catch (e) {
+    debugPrint('Error al guardar comanda: $e');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Error al guardar la comanda: ${e.toString()}'),
+        backgroundColor: Colors.red[400],
+        behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(10),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      )
+    );
+  }
+}
 
   void _cerrarSesion() async {
     final user = FirebaseAuth.instance.currentUser;
@@ -536,260 +622,300 @@ class _SeccionMenuState extends State<SeccionMenu> {
                           );
                         },
                       ),
-            SlidingUpPanel(
-              controller: _panelController,
-              minHeight: _itemsComanda.isEmpty ? 0 : 60,
-              maxHeight: MediaQuery.of(context).size.height * 0.65,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, spreadRadius: 1)],
-              panel: Container(
-                color: Colors.white,
-                child: Column(
-                  children: [
-                    const SizedBox(height: 10),
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 5,
-                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12)),
-                      ),
+SlidingUpPanel(
+  controller: _panelController,
+  minHeight: _itemsComanda.isEmpty ? 0 : 60,
+  maxHeight: MediaQuery.of(context).size.height * 0.65,
+  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, spreadRadius: 1)],
+  panel: Container(
+    color: Colors.white,
+    child: Column(
+      children: [
+        const SizedBox(height: 10),
+        Center(
+          child: Container(
+            width: 40,
+            height: 5,
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+        const SizedBox(height: 15),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Row(
+            children: [
+              // Campo nombre de comanda (3/4 del espacio)
+              Expanded(
+                flex: 3,
+                child: InkWell(
+                  onTap: _editarNombreComanda,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.blue[200]!)
                     ),
-                    const SizedBox(height: 15),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: InkWell(
-                        onTap: _editarNombreComanda,
-                        borderRadius: BorderRadius.circular(10),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.blue[50],
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: Colors.blue[200]!)
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            _nombreComanda,
+                            style: TextStyle(
+                              fontSize: 18, 
+                              fontWeight: FontWeight.bold,
+                              color: Colors.blue[800],
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  _nombreComanda,
-                                  style: TextStyle(
-                                    fontSize: 20, 
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.blue[800],
-                                  ),
-                                  textAlign: TextAlign.center,
-                                ),
+                        ),
+                        Icon(Icons.edit, color: Colors.blue[700], size: 18),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Campo hora de entrega (1/4 del espacio)
+              Expanded(
+                flex: 1,
+                child: InkWell(
+                  onTap: _seleccionarHoraEntrega,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.green[50],
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: Colors.green[200]!)
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(Icons.schedule, color: Colors.green[700], size: 16),
+                        const SizedBox(height: 2),
+                        Text(
+                          _horaEntrega ?? 'Ahora',
+                          style: TextStyle(
+                            fontSize: 12, 
+                            fontWeight: FontWeight.w600,
+                            color: Colors.green[800],
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          decoration: BoxDecoration(
+            color: _esModoEdicion ? Colors.orange[600] : Colors.blue[700],
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Text(
+            _esModoEdicion ? 'Editando Comanda' : 'Items en Comanda',
+            style: const TextStyle(
+              fontSize: 16, 
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        Expanded(
+          child: _itemsComanda.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.shopping_cart_outlined, size: 60, color: Colors.blue[200]),
+                      const SizedBox(height: 10),
+                      Text(
+                        'No hay items en la comanda',
+                        style: TextStyle(fontSize: 16, color: Colors.blue[300]),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  itemCount: _itemsComanda.length,
+                  itemBuilder: (context, index) {
+                    final item = _itemsComanda[index];
+                    return Card(
+                      elevation: 1,
+                      margin: const EdgeInsets.symmetric(vertical: 6),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      color: Colors.grey[50],
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.blue[100],
+                                borderRadius: BorderRadius.circular(8),
                               ),
-                              Icon(Icons.edit, color: Colors.blue[700], size: 20),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-                      decoration: BoxDecoration(
-                        color: _esModoEdicion ? Colors.orange[600] : Colors.blue[700],
-                        borderRadius: BorderRadius.circular(30),
-                      ),
-                      child: Text(
-                        _esModoEdicion ? 'Editando Comanda' : 'Items en Comanda',
-                        style: const TextStyle(
-                          fontSize: 16, 
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: _itemsComanda.isEmpty
-                          ? Center(
+                              child: Icon(
+                                item['tipo'] == 'Plato' ? Icons.restaurant_menu : Icons.local_drink,
+                                color: Colors.blue[700],
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
                               child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Icon(Icons.shopping_cart_outlined, size: 60, color: Colors.blue[200]),
-                                  const SizedBox(height: 10),
                                   Text(
-                                    'No hay items en la comanda',
-                                    style: TextStyle(fontSize: 16, color: Colors.blue[300]),
+                                    item['nombre'],
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15,
+                                      color: Colors.blue[900],
+                                    ),
+                                  ),
+                                  Text(
+                                    '\$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[700],
+                                    ),
                                   ),
                                 ],
                               ),
-                            )
-                          : ListView.builder(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              itemCount: _itemsComanda.length,
-                              itemBuilder: (context, index) {
-                                final item = _itemsComanda[index];
-                                return Card(
-                                  elevation: 1,
-                                  margin: const EdgeInsets.symmetric(vertical: 6),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                  color: Colors.grey[50],
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(8.0),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          padding: const EdgeInsets.all(8),
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue[100],
-                                            borderRadius: BorderRadius.circular(8),
-                                          ),
-                                          child: Icon(
-                                            item['tipo'] == 'Plato' ? Icons.restaurant_menu : Icons.local_drink,
-                                            color: Colors.blue[700],
-                                            size: 20,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                item['nombre'],
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                  fontSize: 15,
-                                                  color: Colors.blue[900],
-                                                ),
-                                              ),
-                                              Text(
-                                                '\$${(item['precio'] * item['cantidad']).toStringAsFixed(2)}',
-                                                style: TextStyle(
-                                                  fontSize: 14,
-                                                  color: Colors.grey[700],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          decoration: BoxDecoration(
-                                            color: Colors.blue[50],
-                                            borderRadius: BorderRadius.circular(8),
-                                            border: Border.all(color: Colors.blue[200]!),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              IconButton(
-                                                icon: Icon(Icons.remove, size: 18, color: Colors.blue[700]),
-                                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                                                padding: EdgeInsets.zero,
-                                                onPressed: () => _decrementarCantidad(index),
-                                              ),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 12),
-                                                child: Text(
-                                                  '${item['cantidad']}',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 16,
-                                                    color: Colors.blue[800],
-                                                  ),
-                                                ),
-                                              ),
-                                              IconButton(
-                                                icon: Icon(Icons.add, size: 18, color: Colors.blue[700]),
-                                                constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
-                                                padding: EdgeInsets.zero,
-                                                onPressed: () => _incrementarCantidad(index),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          icon: Icon(Icons.delete_outline, color: Colors.red[400], size: 24),
-                                          onPressed: () => _eliminarItem(index),
-                                        ),
-                                      ],
+                            ),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: Colors.blue[50],
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(color: Colors.blue[200]!),
+                              ),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    icon: Icon(Icons.remove, size: 18, color: Colors.blue[700]),
+                                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () => _decrementarCantidad(index),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                                    child: Text(
+                                      '${item['cantidad']}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                        color: Colors.blue[800],
+                                      ),
                                     ),
                                   ),
-                                );
-                              },
-                            ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.blue[700],
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total:',
-                              style: TextStyle(
-                                fontSize: 18, 
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                                  IconButton(
+                                    icon: Icon(Icons.add, size: 18, color: Colors.blue[700]),
+                                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                                    padding: EdgeInsets.zero,
+                                    onPressed: () => _incrementarCantidad(index),
+                                  ),
+                                ],
                               ),
                             ),
-                            Text(
-                              '\$${_calcularTotalComanda().toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 20, 
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                            IconButton(
+                              icon: Icon(Icons.delete_outline, color: Colors.red[400], size: 24),
+                              onPressed: () => _eliminarItem(index),
                             ),
                           ],
                         ),
                       ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                      child: TextField(
-                        decoration: InputDecoration(
-                          labelText: 'Comentario (opcional)',
-                          labelStyle: TextStyle(color: Colors.blue[700]),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blue[200]!),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
-                          ),
-                          filled: true,
-                          fillColor: Colors.blue[50],
-                          prefixIcon: Icon(Icons.comment, color: Colors.blue[400]),
-                        ),
-                        onChanged: (value) => _comentario = value,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            flex: 2,
-                            child: ElevatedButton.icon(
-                              onPressed: _guardarComanda,
-                              icon: const Icon(Icons.save),
-                              label: const Text('Guardar Comanda', style: TextStyle(fontSize: 16)),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue[700],
-                                foregroundColor: Colors.white,
-                                elevation: 3,
-                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                    );
+                  },
+                ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue[700],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Total:',
+                  style: TextStyle(
+                    fontSize: 18, 
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '\$${_calcularTotalComanda().toStringAsFixed(2)}',
+                  style: const TextStyle(
+                    fontSize: 20, 
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: TextField(
+            decoration: InputDecoration(
+              labelText: 'Comentario (opcional)',
+              labelStyle: TextStyle(color: Colors.blue[700]),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.blue[200]!),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: BorderSide(color: Colors.blue[700]!, width: 2),
+              ),
+              filled: true,
+              fillColor: Colors.blue[50],
+              prefixIcon: Icon(Icons.comment, color: Colors.blue[400]),
+            ),
+            onChanged: (value) => _comentario = value,
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: _guardarComanda,
+                  icon: const Icon(Icons.save),
+                  label: const Text('Guardar Comanda', style: TextStyle(fontSize: 16)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[700],
+                    foregroundColor: Colors.white,
+                    elevation: 3,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
                 ),
               ),
-              body: Container(),
+            ],
+          ),
+        ),
+      ],
+    ),
+  ),
+  body: Container(),
             ),
           ],
         ),

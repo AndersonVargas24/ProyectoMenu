@@ -133,9 +133,11 @@ class _ComandaCard extends StatelessWidget {
   final int numeroComanda;
   final String nombreComanda;
   final String comentario;
+  final String horaEntrega;
+  
   final Map<String, dynamic> comandaData; // Agregamos toda la data de la comanda
 
-  const _ComandaCard({
+  _ComandaCard({
     required this.documentId,
     required this.formattedDate,
     required this.items,
@@ -146,7 +148,7 @@ class _ComandaCard extends StatelessWidget {
     required this.nombreComanda,
     required this.comentario,
     required this.comandaData,
-  });
+  }) : horaEntrega = comandaData['horaEntrega'] ?? '';
 
   // Método para eliminar la comanda
   void _eliminarComanda(BuildContext context) {
@@ -274,6 +276,24 @@ class _ComandaCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8.0),
+                    // NUEVA SECCIÓN PARA HORA DE ENTREGA
+                    if (horaEntrega != null && horaEntrega.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, size: 16, color: Colors.orange[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Hora de entrega: $horaEntrega',
+                            style: TextStyle(
+                              fontSize: 14, 
+                              color: Colors.orange[900], 
+                              fontWeight: FontWeight.w600
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                    ],
                     Row(
                       children: [
                         Icon(Icons.person_outline, size: 16, color: Colors.blue[700]),
@@ -430,6 +450,7 @@ class _ComandaCard extends StatelessWidget {
                               'id': documentId,
                               'numeroComanda': numeroComanda,
                               'nombreComanda': nombreComanda,
+                              'horaEntrega': horaEntrega, // AGREGAR ESTE CAMPO
                               'items': items,
                               'comentario': comentario,
                               'estado': estado,
