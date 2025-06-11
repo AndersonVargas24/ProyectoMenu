@@ -9,21 +9,21 @@ import 'package:menu/Autehtentication/ChefWaiter.dart';
 
 
 
-class Principalusuario extends StatefulWidget {
+class PrincipalUsuario extends StatefulWidget {
   final int currentIndex;
-  const Principalusuario({super.key, this.currentIndex = 0});
+  const PrincipalUsuario({super.key, this.currentIndex = 0});
 
   @override
-  State<Principalusuario> createState() => _PrincipalusuarioState();
+  State<PrincipalUsuario> createState() => _PrincipalUsuarioState();
 }
 
-class _PrincipalusuarioState extends State<Principalusuario> {
+class _PrincipalUsuarioState extends State<PrincipalUsuario> {
   late int _selectedIndex;
   String _rolUsuario = 'Hola, Usuario';
 
    final List<Widget> _pages = <Widget>[
-    const Menuusuario(),
-    const Comandausuario(),
+    const MenuUsuario(),
+    const ComandaUsuario(),
   ];
 
   final List<DrawerItem> _drawerItems = [

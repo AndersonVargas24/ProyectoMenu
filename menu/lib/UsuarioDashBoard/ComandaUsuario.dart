@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class Comandausuario extends StatefulWidget {
-  const Comandausuario({super.key});
+class ComandaUsuario extends StatefulWidget {
+  const ComandaUsuario({super.key});
 
   @override
-  State<Comandausuario> createState() => _ComandausuarioState();
+  State<ComandaUsuario> createState() => _ComandaUsuarioState();
 }
 
-class _ComandausuarioState extends State<Comandausuario> {
+class _ComandaUsuarioState extends State<ComandaUsuario> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();

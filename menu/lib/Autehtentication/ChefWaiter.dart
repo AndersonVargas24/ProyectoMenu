@@ -21,17 +21,17 @@ class _ChefWaiterState extends State<ChefWaiter> {
   final List<Map<String, dynamic>> roles = [
     {
       'nombre': 'Chef',
-      'imagen': 'lib/assets/chef.png',
+      'imagen': 'https://firebasestorage.googleapis.com/v0/b/menuinteractivo2.firebasestorage.app/o/roles%2Fchef.png?alt=media&token=0391e4c7-bf53-416a-9cab-aea2b57561cf',
       'onTap': () => {},
     },
     {
       'nombre': 'Mesero',
-      'imagen': 'lib/assets/waiter.png',
+      'imagen': 'https://firebasestorage.googleapis.com/v0/b/menuinteractivo2.firebasestorage.app/o/roles%2Fwaiter.png?alt=media&token=dde0927e-c360-4cea-9793-4456548faeaa',
       'onTap': () => {},
     },
     {
       'nombre': 'Usuario',
-      'imagen': 'lib/assets/user.png',
+      'imagen': 'https://firebasestorage.googleapis.com/v0/b/menuinteractivo2.firebasestorage.app/o/roles%2Fuser.png?alt=media&token=12345678-1234-1234-1234-123456789012',
       'onTap': () => {},
     },
   ];
@@ -56,7 +56,7 @@ class _ChefWaiterState extends State<ChefWaiter> {
         );
     roles[2]['onTap'] = () => Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const Principalusuario()),
+          MaterialPageRoute(builder: (_) => const PrincipalUsuario()),
         );
 
     return Scaffold(
@@ -112,10 +112,14 @@ class _ChefWaiterState extends State<ChefWaiter> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Image.asset(
+                          Image.network(
                             rol['imagen'] as String,
                             width: 200,
                             height: 200,
+                            loadingBuilder: (context, child, progress) {
+                              if (progress == null) return child;
+                              return const CircularProgressIndicator();
+                            },
                           ),
                           const SizedBox(height: 12),
                           Text(

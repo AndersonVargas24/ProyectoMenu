@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 
-class Menuusuario extends StatefulWidget {
-  const Menuusuario({super.key});
+class MenuUsuario extends StatefulWidget {
+  const MenuUsuario({super.key});
 
   @override
-  State<Menuusuario> createState() => _MenuusuarioState();
+  State<MenuUsuario> createState() => _MenuUsuarioState();
 }
 
-class _MenuusuarioState extends State<Menuusuario> {
+class _MenuUsuarioState extends State<MenuUsuario> {
   @override
   Widget build(BuildContext context) {
     return const Placeholder();
