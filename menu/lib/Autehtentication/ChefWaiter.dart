@@ -3,7 +3,6 @@ import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/Chef/PrincipalChef.dart';
 import 'package:menu/Usuario/PrincipalUsuario.dart';
 import 'package:menu/Waiter/PrincipalWaiter.dart';
-import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 
 
@@ -137,17 +136,6 @@ class _ChefWaiterState extends State<ChefWaiter> {
               },
             ),
           ),
-          SmoothPageIndicator(
-            controller: _pageController,
-            count: roles.length,
-            effect: const WormEffect(
-              dotHeight: 12,
-              dotWidth: 12,
-              activeDotColor: Colors.black,
-              dotColor: Colors.grey,
-            ),
-          ),
-          const SizedBox(height: 20),
         ],
       ),
     );

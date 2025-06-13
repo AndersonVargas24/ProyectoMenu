@@ -32,6 +32,8 @@ dependencies:
     sdk: flutter
   sliding_up_panel: ^2.0.0+1
   intl: ^0.18.1
+  pdf: ^3.11.3
+  printing: ^5.14.2
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
@@ -45,7 +47,6 @@ dependencies:
   firebase_app_check: ^0.3.2+5
   connectivity_plus: ^6.1.4
   flutter_image_compress: ^2.4.0
-  smooth_page_indicator: ^1.2.1
 
 dev_dependencies:
   flutter_test:
@@ -76,10 +77,14 @@ flutter:
   
   #   - images/a_dot_burr.jpeg
   #   - images/a_dot_ham.jpeg
-  #   -assets/tomate...jpeg
-  #   - assets/pollo.jpg
-  #   - assets/harina.jpeg
-  #   - assets/agotado.jpeg
+  #   - assets/Productos_Predeter.jpg
+  #   - assets/Inventario.png
+  #   - assets/Historial.png
+  #   - assets/chef.png
+  #   - assets/Waiter.png
+  #   - menu/lib/assets/logo.png
+  #   - assets/background1.jpg
+  #   - assets/background2.jpg
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
