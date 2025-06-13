@@ -46,6 +46,8 @@ class ProductoInventario {
 }
 
 class VistaDiaScreen extends StatefulWidget {
+  const VistaDiaScreen({super.key});
+
   @override
   _VistaDiaScreenState createState() => _VistaDiaScreenState();
 }

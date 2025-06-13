@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Para formatear fechas
 import 'package:menu/WaiterDashboard/SeccionMenu.dart'; // Importa la pantalla SeccionMenu
 
+
 class Comandachef extends StatelessWidget {
   const Comandachef({super.key});
 
@@ -12,7 +13,7 @@ class Comandachef extends StatelessWidget {
       backgroundColor: Colors.blue[50], // Fondo azul muy suave para el tema minimalista
       appBar: AppBar(
         title: const Text(
-          'Comandas Pendientes',
+          'Comandas Pendientes y en Preparación',
           style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
@@ -31,13 +32,12 @@ class Comandachef extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('comandas')
-            .where('estado', isEqualTo: 'pendiente')
+            .where('estado', whereIn: ['pendiente', 'preparando'])
             .orderBy('numeroComanda', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
           if (snapshot.hasError) {
-            // Log the error for debugging
-            debugPrint('Error al cargar las comandas: ${snapshot.error}');
+            print('Error al cargar las comandas: ${snapshot.error}');
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -70,7 +70,7 @@ class Comandachef extends StatelessWidget {
                   Icon(Icons.restaurant_menu, color: Colors.blue[300], size: 70),
                   const SizedBox(height: 20),
                   Text(
-                    '¡No hay comandas pendientes!',
+                    '¡No hay comandas pendientes o en preparación!',
                     style: TextStyle(fontSize: 20, color: Colors.blue[700], fontWeight: FontWeight.bold),
                     textAlign: TextAlign.center,
                   ),
@@ -85,8 +85,7 @@ class Comandachef extends StatelessWidget {
             );
           }
 
-          // Debug print to see how many documents are received
-          debugPrint('Se recibieron ${snapshot.data!.docs.length} documentos.');
+          print('Se recibieron ${snapshot.data!.docs.length} documentos.');
 
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
@@ -95,27 +94,21 @@ class Comandachef extends StatelessWidget {
               DocumentSnapshot document = snapshot.data!.docs[index];
               Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
 
-              List<dynamic> items = data['items'] ?? []; // Handle potential null
+              List<dynamic> items = data['items'];
               DateTime fechaCreacion = (data['fecha_creacion'] as Timestamp).toDate();
               final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(fechaCreacion);
               final String nombreMesero = data['usuario_creador_nombre'] ?? 'Usuario Desconocido';
-              // Safely cast numeroComanda to int, defaulting to 0 if not int or null
-              final int numeroComanda = (data['numeroComanda'] is int) ? data['numeroComanda'] : 0;
+              final int numeroComanda = data['numeroComanda'] is int ? data['numeroComanda'] : 0;
               final String nombreComanda = data['nombreComanda'] ?? 'Comanda #$numeroComanda';
               final String comentario = data['comentario'] ?? '';
 
-              // Calculate totalComanda safely, ensuring item['precio'] and item['cantidad'] are numbers
-              double totalComanda = items.fold(0.0, (sum, item) {
-                double price = (item['precio'] as num?)?.toDouble() ?? 0.0;
-                int quantity = (item['cantidad'] as num?)?.toInt() ?? 0;
-                return sum + (price * quantity);
-              });
+              double totalComanda = items.fold(0.0, (sum, item) => sum + (item['precio'] * item['cantidad']));
 
               return _ComandaCard(
                 documentId: document.id,
                 formattedDate: formattedDate,
                 items: items,
-                estado: data['estado'] ?? 'desconocido', // Default estado if null
+                estado: data['estado'],
                 totalComanda: totalComanda,
                 nombreMesero: nombreMesero,
                 numeroComanda: numeroComanda,
@@ -141,9 +134,11 @@ class _ComandaCard extends StatelessWidget {
   final int numeroComanda;
   final String nombreComanda;
   final String comentario;
+  final String horaEntrega;
+  
   final Map<String, dynamic> comandaData; // Agregamos toda la data de la comanda
 
-  const _ComandaCard({
+  _ComandaCard({
     required this.documentId,
     required this.formattedDate,
     required this.items,
@@ -153,19 +148,19 @@ class _ComandaCard extends StatelessWidget {
     required this.numeroComanda,
     required this.nombreComanda,
     required this.comentario,
-    required this.comandaData, // Add super.key here
-  });
+    required this.comandaData,
+  }) : horaEntrega = comandaData['horaEntrega'] ?? '';
 
-  // Método para eliminar la comanda
-  void _eliminarComanda(BuildContext context) {
+  // Método para cambiar estado a preparando
+  void _cambiarAPreparando(BuildContext context) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-          title: const Text('Confirmar eliminación',
-              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
-          content: const Text('¿Estás seguro que deseas eliminar esta comanda?'),
+          title: const Text('Cambiar estado', 
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+          content: const Text('¿Cambiar el estado de esta comanda a "Preparando"?'),
           actions: [
             TextButton(
               child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
@@ -175,21 +170,82 @@ class _ComandaCard extends StatelessWidget {
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red[400],
+                backgroundColor: Colors.orange[400],
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               ),
-              child: const Text('Eliminar'),
+              child: const Text('Confirmar'),
               onPressed: () {
-                // Ejecutar la eliminación en Firestore
+                // Cambiar estado en Firestore
                 FirebaseFirestore.instance
                     .collection('comandas')
                     .doc(documentId)
-                    .delete()
+                    .update({'estado': 'preparando'})
                     .then((_) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: const Text('Comanda eliminada con éxito'),
+                      content: const Text('Estado cambiado a "Preparando"'),
+                      backgroundColor: Colors.orange[600],
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      margin: const EdgeInsets.all(10),
+                    ),
+                  );
+                  Navigator.of(context).pop();
+                }).catchError((error) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error al cambiar estado: $error'),
+                      backgroundColor: Colors.red[600],
+                      behavior: SnackBarBehavior.floating,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      margin: const EdgeInsets.all(10),
+                    ),
+                  );
+                  Navigator.of(context).pop();
+                });
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // Método para cambiar estado a listo
+  void _cambiarAListo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          title: const Text('Cambiar estado', 
+            style: TextStyle(fontWeight: FontWeight.bold, color: Colors.blue)),
+          content: const Text('¿Cambiar el estado de esta comanda a "Listo"?'),
+          actions: [
+            TextButton(
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[400],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Confirmar'),
+              onPressed: () {
+                // Cambiar estado en Firestore
+                FirebaseFirestore.instance
+                    .collection('comandas')
+                    .doc(documentId)
+                    .update({'estado': 'listo'})
+                    .then((_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: const Text('Estado cambiado a "Listo"'),
                       backgroundColor: Colors.green[600],
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -200,7 +256,7 @@ class _ComandaCard extends StatelessWidget {
                 }).catchError((error) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Error al eliminar: $error'),
+                      content: Text('Error al cambiar estado: $error'),
                       backgroundColor: Colors.red[600],
                       behavior: SnackBarBehavior.floating,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -226,7 +282,7 @@ class _ComandaCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         onTap: () {
-          debugPrint('Tarjeta de comanda con ID: $documentId tocada.');
+          print('Tarjeta de comanda con ID: $documentId tocada.');
         },
         borderRadius: BorderRadius.circular(18.0),
         child: Padding(
@@ -282,6 +338,24 @@ class _ComandaCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8.0),
+                    // NUEVA SECCIÓN PARA HORA DE ENTREGA
+                    if (horaEntrega.isNotEmpty) ...[
+                      Row(
+                        children: [
+                          Icon(Icons.access_time, size: 16, color: Colors.orange[700]),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Hora de entrega: $horaEntrega',
+                            style: TextStyle(
+                              fontSize: 14, 
+                              color: Colors.orange[900], 
+                              fontWeight: FontWeight.w600
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8.0),
+                    ],
                     Row(
                       children: [
                         Icon(Icons.person_outline, size: 16, color: Colors.blue[700]),
@@ -370,11 +444,7 @@ class _ComandaCard extends StatelessWidget {
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[700]),
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            '\$${((item['precio'] as num?)?.toDouble() ?? 0.0) * ((item['cantidad'] as num?)?.toInt() ?? 0)}.00', // Ensure .00 for currency
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.blue[900]),
-                          ),
+                          // PRECIO ELIMINADO - No se muestra en la vista del chef
                         ],
                       ),
                     );
@@ -382,75 +452,32 @@ class _ComandaCard extends StatelessWidget {
                 ),
               ),
               const Divider(height: 30, thickness: 1),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  const Text(
-                    'Total:',
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.black),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[700],
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(
-                      '\$${totalComanda.toStringAsFixed(2)}', // Ensure two decimal places
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
+              // TOTAL ELIMINADO - No se muestra en la vista del chef
               const SizedBox(height: 20.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    label: const Text('Eliminar', style: TextStyle(fontSize: 15)),
+                  ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[400],
+                      backgroundColor: Colors.orange[400],
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       elevation: 2,
                     ),
-                    onPressed: () => _eliminarComanda(context),
+                    onPressed: () => _cambiarAPreparando(context),
+                    child: const Text('Preparación', style: TextStyle(fontSize: 15)),
                   ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
-                    label: const Text('Editar', style: TextStyle(fontSize: 15)),
+                  ElevatedButton(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: Colors.green[400],
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
                       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                       elevation: 2,
                     ),
-                    onPressed: () {
-                      // Navigate to SeccionMenu passing the order information
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SeccionMenu(
-                            comandaParaEditar: {
-                              'id': documentId,
-                              'numeroComanda': numeroComanda,
-                              'nombreComanda': nombreComanda,
-                              'items': items,
-                              'comentario': comentario,
-                              'estado': estado,
-                              'usuario_creador_nombre': nombreMesero,
-                              'fecha_creacion': comandaData['fecha_creacion'],
-                              'total': totalComanda,
-                              // You can add more fields if needed
-                            },
-                          ),
-                        ),
-                      );
-                      debugPrint('Navegar a SeccionMenu para editar comanda con ID: $documentId');
-                    },
+                    onPressed: () => _cambiarAListo(context),
+                    child: const Text('Listo', style: TextStyle(fontSize: 15)),
                   ),
                 ],
               ),
@@ -463,12 +490,17 @@ class _ComandaCard extends StatelessWidget {
 
   Color _getEstadoColor(String estado) {
     switch (estado.toLowerCase()) {
+      case 'pendiente':
+        return Colors.orangeAccent;
       case 'preparando':
         return Colors.blue[600]!;
       case 'listo':
         return Colors.green[600]!;
+      case 'entregado':
+        return Colors.grey[600]!;
       default:
         return Colors.grey[600]!;
     }
   }
 }
+//mesero@gmail.com
