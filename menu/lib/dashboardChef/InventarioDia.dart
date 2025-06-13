@@ -4,6 +4,8 @@ import 'package:menu/dashboardChef/Inventario.dart';
 import 'package:menu/dashboardChef/ProductoPredeterminado.dart';
 
 class InventarioDiaScreen extends StatefulWidget {
+  const InventarioDiaScreen({super.key});
+
   @override
   _InventarioDiaScreenState createState() => _InventarioDiaScreenState();
 }

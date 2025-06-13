@@ -45,6 +45,8 @@ class ProductoInventario {
 }
 
 class Inventario extends StatefulWidget {
+  const Inventario({super.key});
+
   @override
   _InventarioState createState() => _InventarioState();
 }

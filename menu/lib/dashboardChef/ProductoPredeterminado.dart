@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:menu/dashboardChef/Inventario.dart';
 
 class ProductosPredeterminadosScreen extends StatefulWidget {
   const ProductosPredeterminadosScreen({super.key});

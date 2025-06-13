@@ -3,11 +3,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/login.dart';
+import 'package:menu/dashboardChef/ComandaChef.dart';
 import 'package:menu/dashboardChef/CreacionMenu.dart';
 import 'package:menu/dashboardChef/HistorialComanda.dart';
 import 'package:menu/dashboardChef/Inventario.dart';
 import 'package:menu/dashboardChef/MenuChef.dart';
-import 'package:menu/dashboardChef/ComandaChef.dart';
+// import 'package:menu/dashboardChef/ComandaChef.dart'; // Ensure this import is correct
 
 class PrincipalChef extends StatefulWidget {
   final int currentIndex;
@@ -19,14 +20,14 @@ class PrincipalChef extends StatefulWidget {
 
 class _PrincipalChefState extends State<PrincipalChef> {
   late int _selectedIndex;
-  String _rolUsuario = "Hola, Chef";
+  String _rolUsuario = "Cargando rol..."; // More informative initial state
 
   final List<Widget> _pages = <Widget>[
     const MenuChef(),
     const CreacionMenu(),
     const Comandachef(),
     const HistorialComanda(),
-    Inventario(),
+    Inventario(), // Inventario is a StatefulWidget, consider making it const if possible
   ];
 
   final List<DrawerItem> _drawerItems = [
@@ -36,6 +37,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
       subtitle: "Ver platos disponibles",
     ),
     DrawerItem(
+
       icon: Icons.add_circle_outline,
       title: "Crear Plato",
       subtitle: "Añadir nuevo elemento",
@@ -61,10 +63,11 @@ class _PrincipalChefState extends State<PrincipalChef> {
   void initState() {
     super.initState();
     _selectedIndex = widget.currentIndex;
-    obtenerRolUsuario();
+    _fetchUserRole(); // Renamed for clarity
   }
 
-  Future<void> obtenerRolUsuario() async {
+  // Renamed the function for better semantics and added debugPrint
+  Future<void> _fetchUserRole() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       try {
@@ -76,19 +79,32 @@ class _PrincipalChefState extends State<PrincipalChef> {
         final data = doc.data();
         if (data != null && data.containsKey('rol')) {
           setState(() {
-            _rolUsuario = data['rol'];
+            // Capitalize the first letter of the role for better display
+            String fetchedRol = data['rol'];
+            _rolUsuario = "Hola, ${fetchedRol[0].toUpperCase()}${fetchedRol.substring(1)}";
+          });
+        } else {
+          setState(() {
+            _rolUsuario = "Hola, Usuario"; // Default if role not found
           });
         }
       } catch (e) {
-        print("⚠️ Error al obtener rol: $e");
+        debugPrint("⚠️ Error al obtener rol del usuario: $e");
+        setState(() {
+          _rolUsuario = "Error al cargar rol"; // Informative message on error
+        });
       }
+    } else {
+      setState(() {
+        _rolUsuario = "No autenticado"; // For unauthenticated state
+      });
     }
   }
 
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
-      Navigator.pop(context);
+      Navigator.pop(context); // Close the drawer
     });
   }
 
@@ -96,7 +112,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Chef"),
+        title: const Text("Panel de Chef"), // More specific title
         backgroundColor: const Color.fromARGB(255, 67, 126, 236),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -171,16 +187,13 @@ class _PrincipalChefState extends State<PrincipalChef> {
                   final isSelected = _selectedIndex == index;
 
                   return Container(
-                    margin:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
-                      color:
-                          isSelected ? Colors.orange.shade50 : Colors.transparent,
+                      color: isSelected ? Colors.orange.shade50 : Colors.transparent,
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 4),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                       leading: Container(
                         width: 40,
                         height: 40,
@@ -201,9 +214,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
                       title: Text(
                         item.title,
                         style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.w600
-                              : FontWeight.w500,
+                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                           color: isSelected
                               ? const Color.fromARGB(255, 117, 182, 219)
                               : Colors.grey.shade800,
@@ -233,7 +244,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
               ),
             ),
             GestureDetector(
-              onTap: () => logoutConRedireccionPorRol(context),
+              onTap: () => _logoutAndRedirect(context), // Call the new internal method
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -284,7 +295,10 @@ class DrawerItem {
   });
 }
 
-Future<void> logoutConRedireccionPorRol(BuildContext context) async {
+// Global function for logout and redirection (now named _logoutAndRedirect for clarity)
+// This function needs to be outside the _PrincipalChefState class, or be a static method.
+// I've moved it to be a global function here as it was previously.
+Future<void> _logoutAndRedirect(BuildContext context) async {
   final user = FirebaseAuth.instance.currentUser;
 
   if (user != null) {
@@ -299,33 +313,51 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
 
       await FirebaseAuth.instance.signOut();
 
+      // Ensure navigation correctly clears the stack
       if (rol == 'Chef') {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const LoginMenu()),
+          (Route<dynamic> route) => false, // Clears all previous routes
         );
       } else if (rol == 'Admin') {
-        Navigator.pushReplacement(
+        // Assuming ChefWaiter is the main login/role selection screen for Admin
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const ChefWaiter()),
+          (Route<dynamic> route) => false, // Clears all previous routes
         );
       } else {
+        // Default fallback if role is not recognized or null
+        debugPrint("⚠️ Rol no reconocido o nulo al cerrar sesión. Redirigiendo a ChefWaiter.");
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Rol no válido")),
+          const SnackBar(content: Text("Sesión cerrada. Rol no reconocido.")),
         );
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const ChefWaiter()),
+          (Route<dynamic> route) => false, // Clears all previous routes
+        );
       }
     } catch (e) {
-      print("⚠️ Error cerrando sesión: $e");
-      Navigator.pushReplacement(
+      debugPrint("⚠️ Error cerrando sesión o obteniendo rol: $e");
+      // Fallback in case of any error during logout process
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error al cerrar sesión. Intente de nuevo.")),
+      );
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (_) => const ChefWaiter()),
+        (Route<dynamic> route) => false, // Clears all previous routes
       );
     }
   } else {
-    Navigator.pushReplacement(
+    // If somehow user is null, still redirect to the main login/role selection
+    debugPrint("⚠️ Usuario nulo al intentar cerrar sesión. Redirigiendo a ChefWaiter.");
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (_) => const ChefWaiter()),
+      (Route<dynamic> route) => false, // Clears all previous routes
     );
   }
 }

@@ -264,7 +264,7 @@ Future<void> _seleccionarHoraEntrega() async {
           data: ThemeData.light().copyWith(
             primaryColor: Colors.blue[700],
             colorScheme: ColorScheme.light(
-              primary: const Color.fromARGB(255, 222, 223, 223)!,
+              primary: const Color.fromARGB(255, 222, 223, 223),
               secondary: Colors.blue[500]!,
             ),
             timePickerTheme: TimePickerThemeData(
@@ -334,7 +334,7 @@ Future<void> _guardarComanda() async {
         'nombre': item['nombre'],
         'precio': item['precio'],
         'cantidad': item['cantidad'],
-        'producto_id': item['id'] ?? null,
+        'producto_id': item['id'],
         'tipo': item['tipo'] ?? 'Plato',
         'descripcion': item['descripcion'] ?? '',
         'imagen': item['imagen'] ?? '',

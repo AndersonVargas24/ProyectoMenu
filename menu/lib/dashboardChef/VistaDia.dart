@@ -5,6 +5,8 @@ import 'package:menu/dashboardChef/inventario.dart';
 import 'package:menu/dashboardChef/HistorialInventario.dart';
 
 class VistaDiaScreen extends StatefulWidget {
+  const VistaDiaScreen({super.key});
+
   @override
   _VistaDiaScreenState createState() => _VistaDiaScreenState();
 }
