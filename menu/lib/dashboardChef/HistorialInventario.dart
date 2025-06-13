@@ -66,19 +66,19 @@ class _HistorialInventarioScreenState extends State<HistorialInventarioScreen> {
                 ),
               ),
               pw.SizedBox(height: 16),
+              // ...existing code...
               pw.Table.fromTextArray(
-                headers: ['Nombre', 'Categorias', 'Unidad', 'Saldo Final'],
+                headers: ['Nombre', 'Categoría', 'Unidad', 'Cantidad Actual'],
                 data:
                     _productos.map((producto) {
-                      final cantidad = producto['cantidad'] ?? 0;
-                      final salida = producto['salida'] ?? 0;
-                      final saldoFinal =
-                          producto['saldoFinal'] ?? (cantidad - salida);
+                      // Mostrar saldoFinal si existe, si no cantidad
+                      final cantidadActual =
+                          producto['saldoFinal'] ?? producto['cantidad'] ?? 0;
                       return [
                         producto['nombre'] ?? '',
                         producto['categoria'] ?? '',
                         producto['unidad'] ?? '',
-                        saldoFinal.toString(),
+                        cantidadActual.toString(),
                       ];
                     }).toList(),
                 headerStyle: pw.TextStyle(
@@ -89,9 +89,14 @@ class _HistorialInventarioScreenState extends State<HistorialInventarioScreen> {
                   color: PdfColors.blueGrey900,
                 ),
                 cellAlignment: pw.Alignment.centerLeft,
+                cellAlignments: {
+                  2: pw.Alignment.center,
+                  3: pw.Alignment.center,
+                },
                 cellStyle: pw.TextStyle(fontSize: 10),
                 cellHeight: 25,
               ),
+
               pw.SizedBox(height: 24),
               pw.Divider(),
               pw.Align(
@@ -132,21 +137,23 @@ class _HistorialInventarioScreenState extends State<HistorialInventarioScreen> {
               ? const Center(child: Text('No hay nada para mostrar'))
               : ListView.builder(
                 itemCount: _productos.length,
-                                itemBuilder: (context, index) {
+                itemBuilder: (context, index) {
                   final producto = _productos[index];
                   final cantidad = producto['cantidad'] ?? 0;
                   final salida = producto['salida'] ?? 0;
-                  final saldoFinal = producto['saldoFinal'] ?? (cantidad - salida);
-                
+                  final saldoFinal =
+                      producto['saldoFinal'] ?? (cantidad - salida);
+
                   return ListTile(
-                    leading: producto['imagenUrl'] != null
-                        ? Image.network(
-                            producto['imagenUrl'],
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          )
-                        : const Icon(Icons.fastfood),
+                    leading:
+                        producto['imagenUrl'] != null
+                            ? Image.network(
+                              producto['imagenUrl'],
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.cover,
+                            )
+                            : const Icon(Icons.fastfood),
                     title: Text(producto['nombre']),
                     subtitle: Text(
                       'Cantidad: $cantidad ${producto['unidad']}\n'
@@ -183,10 +190,14 @@ class _HistorialInventarioScreenState extends State<HistorialInventarioScreen> {
               BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Día'),
               BottomNavigationBarItem(
                 icon: Icon(Icons.list),
+                label: 'Inventario',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet),
                 label: 'Historial',
               ),
             ],
-            currentIndex: 1, // 1 para resaltar "Historial"
+            currentIndex: 2, // 1 para resaltar "Historial"
             onTap: (index) {
               if (index == 0) {
                 Navigator.pushReplacement(
@@ -194,12 +205,11 @@ class _HistorialInventarioScreenState extends State<HistorialInventarioScreen> {
                   MaterialPageRoute(builder: (context) => VistaDiaScreen()),
                 );
               } else if (index == 1) {
-                  Navigator.pushReplacement(
+                Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => Inventario()),
                 );
-                
-            } else if (index == 2) {
+              } else if (index == 2) {
                 // Ya estás en Historial, no hacer nada
               }
             },

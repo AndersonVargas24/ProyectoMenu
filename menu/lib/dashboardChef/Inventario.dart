@@ -9,6 +9,13 @@ import 'package:menu/dashboardChef/VistaDia.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:menu/dashboardChef/HistorialInventario.dart';
 
+// Tema de colores elegantes e innovadores
+const Color kPrimaryColor = Color.fromARGB(255, 5, 118, 211);
+const Color kAccentColor = Color.fromARGB(255, 25, 118, 210);
+const Color kBackgroundColor = Color.fromARGB(255, 227, 227, 227);
+const Color kErrorColor = Color(0xFFE57373);
+const Color kTextPrimary = Color(0xFF263238);
+
 class ProductoInventario {
   String id;
   String nombre;
@@ -444,69 +451,121 @@ class _InventarioState extends State<Inventario> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     if (isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Cargando...')),
-        body: const Center(child: CircularProgressIndicator()),
+        backgroundColor: kBackgroundColor,
+        appBar: AppBar(
+          backgroundColor: kBackgroundColor,
+          title: const Text('Cargando...'),
+        ),
+        body: const Center(
+          child: CircularProgressIndicator(color: kPrimaryColor),
+        ),
       );
     }
 
     return Scaffold(
+      backgroundColor: kBackgroundColor,
       appBar: AppBar(
+        backgroundColor: kPrimaryColor,
+        elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: TextField(
-          decoration: const InputDecoration(hintText: 'Buscar producto...'),
+          decoration: const InputDecoration(
+            hintText: 'Buscar producto...',
+            hintStyle: const TextStyle(color: Colors.white70),
+            border: InputBorder.none,
+          ),
+          style: const TextStyle(color: Colors.white),
           onChanged: (value) => setState(() => busqueda = value),
         ),
         actions: [
-          DropdownButton<String>(
-            value:
-                categorias.contains(filtroCategoria)
-                    ? filtroCategoria
-                    : 'Todos',
-            onChanged:
-                (value) => setState(() => filtroCategoria = value ?? 'nombre'),
-            icon: const Icon(Icons.filter_list),
-            hint: const Text('Filtrar por categoría'),
-            items:
-                categorias
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
+          DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              dropdownColor: kAccentColor,
+              value:
+                  categorias.contains(filtroCategoria)
+                      ? filtroCategoria
+                      : 'Todos',
+              onChanged:
+                  (value) =>
+                      setState(() => filtroCategoria = value ?? 'nombre'),
+              icon: const Icon(Icons.filter_list, color: Colors.white),
+
+              hint: const Text('Filtrar por categoría'),
+              items:
+                  categorias
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+            ),
           ),
         ],
       ),
       body: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         itemCount: productosFiltrados.length,
         itemBuilder: (context, index) {
           final p = productosFiltrados[index];
-          return ListTile(
-            leading:
-                p.imagenUrl != null
-                    ? Image.network(
-                      p.imagenUrl!,
-                      width: 50,
-                      height: 50,
-                      fit: BoxFit.cover,
-                    )
-                    : const Icon(Icons.fastfood),
-            title: Text(p.nombre),
-            subtitle: Text('${p.cantidad} ${p.unidad} - ${p.categoria}'),
-            // SOLO DEJA ELIMINAR, NO EDITAR
-            trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: () => _eliminarProducto(p),
+
+          return Card(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            color: Colors.white,
+            elevation: 3,
+            margin: const EdgeInsets.symmetric(vertical: 6),
+            child: ListTile(
+              contentPadding: const EdgeInsets.all(12),
+              leading: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child:
+                    p.imagenUrl != null
+                        ? Image.network(
+                          p.imagenUrl!,
+                          width: 60,
+                          height: 60,
+                          fit: BoxFit.cover,
+                        )
+                        : const Icon(
+                          Icons.fastfood,
+                          size: 40,
+                          color: kAccentColor,
+                        ),
+              ),
+              title: Text(
+                p.nombre,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: kTextPrimary,
+                ),
+              ),
+              subtitle: Text(
+                '${p.cantidad} ${p.unidad} - ${p.categoria}',
+                style: const TextStyle(color: Colors.grey),
+              ),
+              trailing: IconButton(
+                icon: const Icon(Icons.delete, color: kErrorColor),
+                onPressed: () => _eliminarProducto(p),
+              ),
             ),
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
+        backgroundColor: kPrimaryColor,
         onPressed: agregarProducto,
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        backgroundColor: Colors.white,
+        selectedItemColor: kPrimaryColor,
+        unselectedItemColor: Colors.grey,
+        type: BottomNavigationBarType.fixed,
+        elevation: 5,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Día'),
           BottomNavigationBarItem(
