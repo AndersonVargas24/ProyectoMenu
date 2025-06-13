@@ -3,13 +3,11 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
 import 'package:menu/dashboardChef/EditarProducto.dart';
 import 'package:menu/dashboardChef/InventarioDia.dart';
 import 'package:menu/dashboardChef/VistaDia.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:menu/dashboardChef/HistorialInventario.dart';
-import 'package:menu/dashboardChef/ProductoPredeterminado.dart';
 
 class ProductoInventario {
   String id;
@@ -56,12 +54,106 @@ class _InventarioState extends State<Inventario> {
   String categoriaSeleccionada = 'Todos';
   List<ProductoInventario> productos = [];
   String filtroCategoria = 'Todos';
+  List<String> unidadesDisponibles = [];
+  String unidadSeleccionada = 'Unidad';
   String busqueda = '';
   final ImagePicker _picker = ImagePicker();
   DateTime? filtroFecha;
   int _currentIndex = 0;
   bool isLoading = true;
   bool estaConectado = true;
+  bool esInventarioDia = false;
+
+  // NUEVO: Inicializar inventario del día
+  Future<void> inicializarInventarioDelDia() async {
+    final hoy = DateTime.now();
+    final fechaDoc =
+        "${hoy.year}-${hoy.month.toString().padLeft(2, '0')}-${hoy.day.toString().padLeft(2, '0')}";
+    final inventarioDiaRef = FirebaseFirestore.instance
+        .collection('inventario_dia')
+        .doc(fechaDoc);
+
+    final doc = await inventarioDiaRef.get();
+
+    // Obtener productos base
+    final productosSnapshot =
+        await FirebaseFirestore.instance.collection('productos').get();
+    List<Map<String, dynamic>> productosHoy = [];
+
+    if (doc.exists) {
+      // Si ya existe el documento del día, solo agrega productos nuevos si no existen
+      final data = doc.data() as Map<String, dynamic>;
+      final productosExistentes = List<Map<String, dynamic>>.from(
+        data['productos'] ?? [],
+      );
+      productosHoy = List<Map<String, dynamic>>.from(productosExistentes);
+
+      for (final productoDoc in productosSnapshot.docs) {
+        final dataProd = productoDoc.data();
+        final yaExiste = productosExistentes.any(
+          (p) => p['nombre'] == dataProd['nombre'],
+        );
+        if (!yaExiste) {
+          productosHoy.add({
+            'nombre': dataProd['nombre'] ?? '',
+            'categoria': dataProd['categoria'] ?? '',
+            'unidad': dataProd['unidad'] ?? '',
+            'cantidad': 0,
+            'horaIngreso': Timestamp.now(),
+            'salida': 0,
+            'horaSalida': null,
+          });
+        }
+      }
+      await inventarioDiaRef.update({'productos': productosHoy});
+    } else {
+      // Si no existe el documento, crea uno nuevo con todos los productos en 0
+      productosHoy =
+          productosSnapshot.docs.map((doc) {
+            final data = doc.data();
+            return {
+              'nombre': data['nombre'] ?? '',
+              'categoria': data['categoria'] ?? '',
+              'unidad': data['unidad'] ?? '',
+              'cantidad': 0,
+              'horaIngreso': Timestamp.now(),
+              'salida': 0,
+              'horaSalida': null,
+            };
+          }).toList();
+
+      await inventarioDiaRef.set({
+        'fecha': Timestamp.now(),
+        'productos': productosHoy,
+        'estado': 'abierto',
+      });
+    }
+    esInventarioDia = true;
+    setState(() {});
+  }
+
+  cargarProductos() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final snapshot =
+          await FirebaseFirestore.instance.collection('productos').get();
+      productos =
+          snapshot.docs
+              .map((doc) => ProductoInventario.fromDocument(doc))
+              .toList();
+    } catch (e) {
+      print('Error al cargar productos: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Error al cargar productos')),
+      );
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   void _eliminarProducto(ProductoInventario producto) async {
     final confirmacion = await showDialog<bool>(
@@ -116,6 +208,7 @@ class _InventarioState extends State<Inventario> {
   void initState() {
     super.initState();
     verificarConexion();
+    inicializarInventarioDelDia(); // <-- Llama aquí
     Connectivity().onConnectivityChanged.listen((result) {
       final conectado = result != ConnectivityResult.none;
       if (conectado != estaConectado) {
@@ -135,6 +228,7 @@ class _InventarioState extends State<Inventario> {
     });
     cargarProductos();
     cargarCategorias();
+    cargarUnidades();
   }
 
   Future<void> verificarConexion() async {
@@ -144,117 +238,58 @@ class _InventarioState extends State<Inventario> {
     });
   }
 
-  Future<void> cargarProductosPredeterminados() async {
-    final fechaHoy = DateTime.now();
-    final fechaStr = DateFormat('yyyy-MM-dd').format(fechaHoy);
-    final inventarioRef = FirebaseFirestore.instance
-        .collection('inventario')
-        .doc(fechaStr);
-
-    final docSnapshot = await inventarioRef.get();
-    if (docSnapshot.exists) {
-      // Inventario ya existe
-      return;
-    }
-
-    final productosPredRef = FirebaseFirestore.instance.collection(
-      'productos_predeterminados',
-    );
-    final snapshot = await productosPredRef.get();
-
-    final batch = FirebaseFirestore.instance.batch();
-
-    for (var doc in snapshot.docs) {
-      final producto = doc.data();
-      final productoRef = inventarioRef.collection('productos').doc();
-      batch.set(productoRef, {
-        'nombre': producto['nombre'],
-        'categoria': producto['categoria'],
-        'unidad': producto['unidad'],
-        'cantidad': 0,
-        'horaIngreso': FieldValue.serverTimestamp(),
-        'salida': 0,
-        'horaSalida': null,
-        'saldo': 0,
-      });
-    }
-
-    await batch.commit();
-  }
-
-  Future<void> cargarProductos() async {
-    setState(() => isLoading = true);
-    try {
-      final snapshot =
-          await FirebaseFirestore.instance.collection('productos').get();
-      setState(() {
-        productos =
-            snapshot.docs
-                .map((doc) => ProductoInventario.fromDocument(doc))
-                .toList();
-        isLoading = false;
-      });
-    } catch (e) {
-      print('Error al cargar productos: $e');
-      setState(() => isLoading = false);
-    }
-  }
-
   Future<void> cargarCategorias() async {
     final snapshot =
         await FirebaseFirestore.instance.collection('categorias').get();
     final nuevasCategorias =
         snapshot.docs
             .map((doc) => doc['nombre'] as String)
+            .where((nombre) => nombre.isNotEmpty)
             .toSet()
-            .toList(); // Elimina duplicados
+            .toList();
+
     setState(() {
-      categoriasDisponibles = ['Todos', ...nuevasCategorias];
+      categoriasDisponibles = nuevasCategorias; // Solo categorías reales
+      // Si quieres, puedes mantener la lógica del filtro aparte
       if (!categoriasDisponibles.contains(categoriaSeleccionada)) {
-        categoriaSeleccionada = 'Todos';
+        categoriaSeleccionada =
+            categoriasDisponibles.isNotEmpty ? categoriasDisponibles.first : '';
       }
     });
   }
 
-  Future<String?> _mostrarDialogoAgregarCategoria() async {
-    final controller = TextEditingController();
-    return showDialog<String>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Nueva categoría'),
-            content: TextField(
-              controller: controller,
-              decoration: const InputDecoration(
-                hintText: 'Nombre de categoría',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar'),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(context, controller.text.trim()),
-                child: const Text('Guardar'),
-              ),
-            ],
-          ),
-    );
+  Future<void> cargarUnidades() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('U_medida').get();
+    setState(() {
+      unidadesDisponibles =
+          snapshot.docs
+              .map((doc) => doc['unidad'] as String)
+              .where((u) => u.isNotEmpty)
+              .toList();
+      if (unidadesDisponibles.isNotEmpty) {
+        unidadSeleccionada = unidadesDisponibles.first;
+      }
+    });
   }
 
   Future<void> agregarProducto() async {
     String nombre = '';
     String categoria = '';
-    int cantidad = 0;
     String unidad = '';
     File? imagen;
     String? imagenUrl;
 
     final nombreController = TextEditingController();
-    final categoriaController = TextEditingController();
-    final cantidadController = TextEditingController();
-    final unidadController = TextEditingController();
+
+    // Inicializa la unidad seleccionada correctamente
+    if (unidadesDisponibles.isNotEmpty &&
+        (unidadSeleccionada.isEmpty ||
+            !unidadesDisponibles.contains(unidadSeleccionada))) {
+      unidadSeleccionada = unidadesDisponibles.first;
+    } else if (unidadesDisponibles.isEmpty) {
+      unidadSeleccionada = '';
+    }
 
     await showDialog(
       context: context,
@@ -268,7 +303,7 @@ class _InventarioState extends State<Inventario> {
                   DropdownButtonFormField<String>(
                     value: categoria.isNotEmpty ? categoria : null,
                     hint: const Text('Selecciona una categoría'),
-                    onChanged: (value) {
+                    onChanged: (value) async {
                       if (value != null) {
                         setState(() {
                           categoria = value;
@@ -276,47 +311,36 @@ class _InventarioState extends State<Inventario> {
                       }
                     },
                     items:
-                        categoriasDisponibles.where((c) => c != 'Todos').map((
-                          cat,
-                        ) {
-                          return DropdownMenuItem(value: cat, child: Text(cat));
-                        }).toList(),
+                        categoriasDisponibles
+                            .map(
+                              (cat) => DropdownMenuItem(
+                                value: cat,
+                                child: Text(cat),
+                              ),
+                            )
+                            .toList(),
                   ),
-                  TextButton(
-                    onPressed: () async {
-                      final nuevaCategoria =
-                          await _mostrarDialogoAgregarCategoria();
-                      if (nuevaCategoria != null && nuevaCategoria.isNotEmpty) {
-                        try {
-                          await FirebaseFirestore.instance
-                              .collection('categorias')
-                              .add({'nombre': nuevaCategoria});
-                          setState(() {
-                            if (!categoriasDisponibles.contains(
-                              nuevaCategoria,
-                            )) {
-                              categoriasDisponibles.add(nuevaCategoria);
-                            }
-                            categoriaSeleccionada = nuevaCategoria;
-                          });
-                        } catch (e) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Error al agregar categoría'),
-                            ),
-                          );
-                        }
+                  DropdownButtonFormField<String>(
+                    value:
+                        unidadesDisponibles.contains(unidadSeleccionada)
+                            ? unidadSeleccionada
+                            : null,
+                    hint: const Text('Selecciona una unidad'),
+                    onChanged: (value) {
+                      if (value != null) {
+                        setState(() {
+                          unidadSeleccionada = value;
+                          unidad = value;
+                        });
                       }
                     },
-                    child: const Text('Agregar nueva categoría'),
+                    items:
+                        unidadesDisponibles
+                            .map(
+                              (u) => DropdownMenuItem(value: u, child: Text(u)),
+                            )
+                            .toList(),
                   ),
-
-                  _buildTextField(
-                    cantidadController,
-                    'Cantidad',
-                    isNumber: true,
-                  ),
-                  _buildTextField(unidadController, 'Unidad'),
                   ElevatedButton(
                     onPressed: () async {
                       final picked = await _picker.pickImage(
@@ -335,9 +359,8 @@ class _InventarioState extends State<Inventario> {
               TextButton(
                 onPressed: () async {
                   nombre = nombreController.text;
-                  categoria = categoriaController.text;
-                  cantidad = int.tryParse(cantidadController.text) ?? 0;
-                  unidad = unidadController.text;
+                  //categoria = categoriaController.text;
+                  //cantidad = 0;
 
                   if (imagen != null) {
                     final ref = FirebaseStorage.instance.ref().child(
@@ -352,8 +375,8 @@ class _InventarioState extends State<Inventario> {
                       .add({
                         'nombre': nombre,
                         'categoria': categoria,
-                        'cantidad': cantidad,
-                        'unidad': unidad,
+                        'cantidad': 0,
+                        'unidad': unidadSeleccionada,
                         'imagenUrl': imagenUrl,
                         'fecha': FieldValue.serverTimestamp(),
                       });
@@ -364,8 +387,8 @@ class _InventarioState extends State<Inventario> {
                         id: doc.id,
                         nombre: nombre,
                         categoria: categoria,
-                        cantidad: cantidad,
-                        unidad: unidad,
+                        cantidad: 0,
+                        unidad: unidadSeleccionada,
                         imagenUrl: imagenUrl,
                       ),
                     );
@@ -384,11 +407,13 @@ class _InventarioState extends State<Inventario> {
     TextEditingController controller,
     String label, {
     bool isNumber = false,
+    bool readOnly = false,
   }) {
     return TextField(
       controller: controller,
       decoration: InputDecoration(labelText: label),
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      readOnly: readOnly,
     );
   }
 
@@ -439,47 +464,15 @@ class _InventarioState extends State<Inventario> {
           onChanged: (value) => setState(() => busqueda = value),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.account_balance_wallet),
-            tooltip: 'Inventario del día',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => InventarioDiaScreen()),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.add_home_rounded),
-            tooltip: 'Productos Predeterminados',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ProductosPredeterminadosScreen(),
-                ),
-              );
-            },
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.calendar_today),
-            onPressed: () async {
-              final fechaSeleccionada = await showDatePicker(
-                context: context,
-                initialDate: filtroFecha ?? DateTime.now(),
-                firstDate: DateTime(2023),
-                lastDate: DateTime(2100),
-              );
-              if (fechaSeleccionada != null) {
-                setState(() => filtroFecha = fechaSeleccionada);
-              }
-            },
-          ),
           DropdownButton<String>(
-            value: filtroCategoria,
+            value:
+                categorias.contains(filtroCategoria)
+                    ? filtroCategoria
+                    : 'Todos',
             onChanged:
-                (value) => setState(() => filtroCategoria = value ?? 'Todos'),
+                (value) => setState(() => filtroCategoria = value ?? 'nombre'),
+            icon: const Icon(Icons.filter_list),
+            hint: const Text('Filtrar por categoría'),
             items:
                 categorias
                     .map((c) => DropdownMenuItem(value: c, child: Text(c)))
@@ -503,37 +496,10 @@ class _InventarioState extends State<Inventario> {
                     : const Icon(Icons.fastfood),
             title: Text(p.nombre),
             subtitle: Text('${p.cantidad} ${p.unidad} - ${p.categoria}'),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
-                  onPressed: () async {
-                    final result = await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder:
-                            (context) => EditarProductoScreen(
-                              productoId: p.id,
-                              productoData: {
-                                'nombre': p.nombre,
-                                'categoria': p.categoria,
-                                'unidad': p.unidad,
-                                'imagenUrl': p.imagenUrl,
-                              },
-                            ),
-                      ),
-                    );
-                    if (result == true) {
-                      cargarProductos();
-                    }
-                  },
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _eliminarProducto(p),
-                ),
-              ],
+            // SOLO DEJA ELIMINAR, NO EDITAR
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _eliminarProducto(p),
             ),
           );
         },
@@ -545,9 +511,13 @@ class _InventarioState extends State<Inventario> {
       bottomNavigationBar: BottomNavigationBar(
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.today), label: 'Día'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.account_balance_wallet),
+            label: 'Inicio',
+          ),
           BottomNavigationBarItem(icon: Icon(Icons.list), label: 'Historial'),
         ],
-        currentIndex: _currentIndex,
+        currentIndex: 1,
         onTap: (index) {
           setState(() => _currentIndex = index);
           if (index == 0) {
@@ -556,6 +526,11 @@ class _InventarioState extends State<Inventario> {
               MaterialPageRoute(builder: (context) => VistaDiaScreen()),
             );
           } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => Inventario()),
+            );
+          } else if (index == 2) {
             Navigator.push(
               context,
               MaterialPageRoute(
