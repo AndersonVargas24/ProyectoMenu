@@ -6,8 +6,6 @@ import 'package:menu/UsuarioDashBoard/MenuUsuario.dart';
 import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/Autehtentication/ChefWaiter.dart';
 
-
-
 class PrincipalUsuario extends StatefulWidget {
   final int currentIndex;
   const PrincipalUsuario({super.key, this.currentIndex = 0});
@@ -18,50 +16,47 @@ class PrincipalUsuario extends StatefulWidget {
 
 class _PrincipalUsuarioState extends State<PrincipalUsuario> {
   late int _selectedIndex;
-  String _rolUsuario = 'Hola, Usuario';
+  String _nombreUsuario = '';
+  String _rolUsuario = '';
 
-   final List<Widget> _pages = <Widget>[
+  final List<Widget> _pages = <Widget>[
     const MenuUsuario(),
     const ComandaUsuario(),
   ];
 
   final List<DrawerItem> _drawerItems = [
-
-    DrawerItem(icon: Icons.restaurant_menu, 
-    title: "Menú", 
-    subtitle: "Ver Menú del Restaurante"
-    ),
-    DrawerItem(icon: Icons.receipt,
-    title: "Comandas",
-    subtitle: "Ver Comandas Actuales"
-    ),
+    DrawerItem(
+        icon: Icons.restaurant_menu,
+        title: "Menú",
+        subtitle: "Ver Menú del Restaurante"),
+    DrawerItem(
+        icon: Icons.receipt,
+        title: "Comandas",
+        subtitle: "Ver Comandas Actuales"),
   ];
 
-
- @override
+  @override
   void initState() {
     super.initState();
     _selectedIndex = widget.currentIndex;
-    obtenerRolUsuario();
-    
+    obtenerNombreUsuario();
   }
 
-  Future <void> obtenerRolUsuario() async {
+  Future<void> obtenerNombreUsuario() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      if (doc.exists && doc.data()!.containsKey('rol')) {
+      if (doc.exists) {
         setState(() {
-          _rolUsuario = doc['rol'];
+          _nombreUsuario = doc.data()!['username'] ?? 'Usuario';
+          _rolUsuario = doc.data()!['rol'] ?? '';
         });
       }
     }
-    
   }
-
 
   void _onItemTapped(int index) {
     setState(() {
@@ -74,7 +69,7 @@ class _PrincipalUsuarioState extends State<PrincipalUsuario> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Mesero"),
+        title: const Text("Bienvenido al Restaurante"),
         backgroundColor: const Color.fromARGB(255, 67, 126, 236),
         foregroundColor: Colors.white,
         elevation: 0,
@@ -121,16 +116,20 @@ class _PrincipalUsuarioState extends State<PrincipalUsuario> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        _rolUsuario,
+                        _nombreUsuario.isNotEmpty
+                            ? 'Hola, $_nombreUsuario'
+                            : 'Hola, Usuario',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        "Panel de Control",
-                        style: TextStyle(
+                      Text(
+                        _rolUsuario.isNotEmpty
+                            ? 'Rol: $_rolUsuario'
+                            : '',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                         ),
@@ -149,7 +148,8 @@ class _PrincipalUsuarioState extends State<PrincipalUsuario> {
                   final isSelected = _selectedIndex == index;
 
                   return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    margin:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       color: isSelected
@@ -282,31 +282,20 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
 
       if (rol == 'Usuario') {
         Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const LoginMenu()));
-     } else if (rol == 'Admin') {
-       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+            context, MaterialPageRoute(builder: (context) => const LoginMenu()));
+      } else if (rol == 'Admin') {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const ChefWaiter()));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Rol no válido")),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => const LoginMenu()));
       }
     } else {
-       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+      Navigator.pushReplacement(
+          context, MaterialPageRoute(builder: (context) => const ChefWaiter()));
     }
   } else {
-     Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-        builder: (context) => const ChefWaiter()));
+    Navigator.pushReplacement(
+        context, MaterialPageRoute(builder: (context) => const ChefWaiter()));
   }
 }
-

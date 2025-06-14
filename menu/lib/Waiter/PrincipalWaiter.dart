@@ -17,7 +17,8 @@ class Principalwaiter extends StatefulWidget {
 
 class _PrincipalwaiterState extends State<Principalwaiter> {
   late int _selectedIndex;
-  String _rolUsuario = "Hola, Mesero";
+  String _rolUsuario = "";
+  String _nombreUsuario = "";
   
 
   final List<Widget> _pages = <Widget>[
@@ -46,24 +47,24 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
   void initState() {
     super.initState();
     _selectedIndex = widget.currentIndex;
-    obtenerRolUsuario();
+    obtenerNombreUsuario();
     
   }
 
-  Future <void> obtenerRolUsuario() async {
+Future<void> obtenerNombreUsuario() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
-      if (doc.exists && doc.data()!.containsKey('rol')) {
+      if (doc.exists) {
         setState(() {
-          _rolUsuario = doc['rol'];
+          _nombreUsuario = doc.data()!['username'] ?? 'Usuario';
+          _rolUsuario = doc.data()!['rol'] ?? '';
         });
       }
     }
-    
   }
 
 
@@ -123,18 +124,22 @@ class _PrincipalwaiterState extends State<Principalwaiter> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 12),
+                     const SizedBox(height: 12),
                       Text(
-                        _rolUsuario,
+                        _nombreUsuario.isNotEmpty
+                            ? 'Hola, $_nombreUsuario'
+                            : 'Hola, Usuario',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      const Text(
-                        "Panel de Control",
-                        style: TextStyle(
+                      Text(
+                        _rolUsuario.isNotEmpty
+                            ? 'Rol: $_rolUsuario'
+                            : '',
+                        style: const TextStyle(
                           color: Colors.white70,
                           fontSize: 11,
                         ),
@@ -295,11 +300,11 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
         MaterialPageRoute(
         builder: (context) => const ChefWaiter()));
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Rol no válido")),
-        );
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+        Navigator.pushReplacement(
+    context,
+    MaterialPageRoute(builder: (context) => const LoginMenu()),
+  );
+}
     } else {
        Navigator.pushReplacement(
         context,

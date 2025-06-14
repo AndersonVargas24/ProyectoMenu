@@ -6,7 +6,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:menu/dashboardChef/VistaDia.dart';
-import 'package:menu/dashboardChef/InventarioDia.dart';
+
 
 class HistorialInventarioScreen extends StatefulWidget {
   const HistorialInventarioScreen({super.key});

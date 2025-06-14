@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/login.dart';
-import 'package:menu/Chef/PrincipalChef.dart';
-import 'package:menu/Waiter/PrincipalWaiter.dart';
+
 
 class SeccionMenu extends StatefulWidget {
   final Map<String, dynamic>? comandaParaEditar;
@@ -264,7 +263,7 @@ Future<void> _seleccionarHoraEntrega() async {
           data: ThemeData.light().copyWith(
             primaryColor: Colors.blue[700],
             colorScheme: ColorScheme.light(
-              primary: const Color.fromARGB(255, 222, 223, 223),
+              primary: const Color.fromARGB(255, 222, 223, 223)!,
               secondary: Colors.blue[500]!,
             ),
             timePickerTheme: TimePickerThemeData(
@@ -334,7 +333,7 @@ Future<void> _guardarComanda() async {
         'nombre': item['nombre'],
         'precio': item['precio'],
         'cantidad': item['cantidad'],
-        'producto_id': item['id'],
+        'producto_id': item['id'] ?? null,
         'tipo': item['tipo'] ?? 'Plato',
         'descripcion': item['descripcion'] ?? '',
         'imagen': item['imagen'] ?? '',
