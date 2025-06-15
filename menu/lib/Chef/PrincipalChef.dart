@@ -5,7 +5,7 @@ import 'package:menu/Autehtentication/ChefWaiter.dart';
 import 'package:menu/Autehtentication/login.dart';
 import 'package:menu/dashboardChef/CreacionMenu.dart';
 import 'package:menu/dashboardChef/HistorialComanda.dart';
-import 'package:menu/dashboardChef/Inventario.dart';
+import 'package:menu/dashboardChef/DashboardInventario.dart';
 import 'package:menu/dashboardChef/MenuChef.dart';
 import 'package:menu/dashboardChef/ComandaChef.dart';
 
@@ -27,7 +27,12 @@ class _PrincipalChefState extends State<PrincipalChef> {
     const CreacionMenu(),
     const Comandachef(),
     const HistorialComanda(),
+<<<<<<< Updated upstream
     Inventario(),
+=======
+    const Dashboardinventario(),
+    // Inventario is a StatefulWidget, consider making it const if possible
+>>>>>>> Stashed changes
   ];
 
   final List<DrawerItem> _drawerItems = [
@@ -68,11 +73,36 @@ class _PrincipalChefState extends State<PrincipalChef> {
   Future<void> obtenerNombreUsuario() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
+<<<<<<< Updated upstream
       final doc = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .get();
       if (doc.exists) {
+=======
+      try {
+        final doc =
+            await FirebaseFirestore.instance
+                .collection('users')
+                .doc(user.uid)
+                .get();
+
+        final data = doc.data();
+        if (data != null && data.containsKey('rol')) {
+          setState(() {
+            // Capitalize the first letter of the role for better display
+            String fetchedRol = data['rol'];
+            _rolUsuario =
+                "Hola, ${fetchedRol[0].toUpperCase()}${fetchedRol.substring(1)}";
+          });
+        } else {
+          setState(() {
+            _rolUsuario = "Hola, Usuario"; // Default if role not found
+          });
+        }
+      } catch (e) {
+        debugPrint("⚠️ Error al obtener rol del usuario: $e");
+>>>>>>> Stashed changes
         setState(() {
           _nombreUsuario = doc.data()!['username'] ?? 'Usuario';
           _rolUsuario = doc.data()!['rol'] ?? '';
@@ -148,6 +178,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
+<<<<<<< Updated upstream
                       Text(
                         _rolUsuario.isNotEmpty
                             ? 'Rol: $_rolUsuario'
@@ -156,6 +187,11 @@ class _PrincipalChefState extends State<PrincipalChef> {
                           color: Colors.white70,
                           fontSize: 11,
                         ),
+=======
+                      const Text(
+                        "Panel de Control",
+                        style: TextStyle(color: Colors.white70, fontSize: 11),
+>>>>>>> Stashed changes
                       ),
                     ],
                   ),
@@ -171,6 +207,7 @@ class _PrincipalChefState extends State<PrincipalChef> {
                   final isSelected = _selectedIndex == index;
 
                   return Container(
+<<<<<<< Updated upstream
                     margin:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
@@ -181,51 +218,80 @@ class _PrincipalChefState extends State<PrincipalChef> {
                     child: ListTile(
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 4),
+=======
+                    margin: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      color:
+                          isSelected
+                              ? Colors.orange.shade50
+                              : Colors.transparent,
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 4,
+                      ),
+>>>>>>> Stashed changes
                       leading: Container(
                         width: 40,
                         height: 40,
                         decoration: BoxDecoration(
-                          color: isSelected
-                              ? const Color.fromARGB(255, 117, 182, 219)
-                              : Colors.grey.shade100,
+                          color:
+                              isSelected
+                                  ? const Color.fromARGB(255, 117, 182, 219)
+                                  : Colors.grey.shade100,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
                           item.icon,
-                          color: isSelected
-                              ? Colors.white
-                              : Colors.grey.shade600,
+                          color:
+                              isSelected ? Colors.white : Colors.grey.shade600,
                           size: 22,
                         ),
                       ),
                       title: Text(
                         item.title,
                         style: TextStyle(
+<<<<<<< Updated upstream
                           fontWeight: isSelected
                               ? FontWeight.w600
                               : FontWeight.w500,
                           color: isSelected
                               ? const Color.fromARGB(255, 117, 182, 219)
                               : Colors.grey.shade800,
+=======
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w500,
+                          color:
+                              isSelected
+                                  ? const Color.fromARGB(255, 117, 182, 219)
+                                  : Colors.grey.shade800,
+>>>>>>> Stashed changes
                           fontSize: 16,
                         ),
                       ),
                       subtitle: Text(
                         item.subtitle,
                         style: TextStyle(
-                          color: isSelected
-                              ? const Color.fromARGB(255, 117, 182, 219)
-                              : Colors.grey.shade500,
+                          color:
+                              isSelected
+                                  ? const Color.fromARGB(255, 117, 182, 219)
+                                  : Colors.grey.shade500,
                           fontSize: 12,
                         ),
                       ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.arrow_forward_ios,
-                              size: 16,
-                              color: Color.fromARGB(255, 117, 182, 219),
-                            )
-                          : null,
+                      trailing:
+                          isSelected
+                              ? const Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Color.fromARGB(255, 117, 182, 219),
+                              )
+                              : null,
                       onTap: () => _onItemTapped(index),
                     ),
                   );
@@ -233,24 +299,24 @@ class _PrincipalChefState extends State<PrincipalChef> {
               ),
             ),
             GestureDetector(
+<<<<<<< Updated upstream
               onTap: () => logoutConRedireccionPorRol(context),
+=======
+              onTap:
+                  () => _logoutAndRedirect(
+                    context,
+                  ), // Call the new internal method
+>>>>>>> Stashed changes
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   border: Border(
-                    top: BorderSide(
-                      color: Colors.grey.shade200,
-                      width: 1,
-                    ),
+                    top: BorderSide(color: Colors.grey.shade200, width: 1),
                   ),
                 ),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.logout,
-                      color: Colors.grey.shade600,
-                      size: 20,
-                    ),
+                    Icon(Icons.logout, color: Colors.grey.shade600, size: 20),
                     const SizedBox(width: 12),
                     Text(
                       "Cerrar Sesión",
@@ -277,11 +343,7 @@ class DrawerItem {
   final String title;
   final String subtitle;
 
-  DrawerItem({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
+  DrawerItem({required this.icon, required this.title, required this.subtitle});
 }
 
 Future<void> logoutConRedireccionPorRol(BuildContext context) async {
@@ -289,10 +351,11 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
 
   if (user != null) {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .get();
+      final doc =
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.uid)
+              .get();
 
       final data = doc.data();
       final rol = data != null ? data['rol'] : null;
@@ -310,6 +373,7 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
           MaterialPageRoute(builder: (_) => const ChefWaiter()),
         );
       } else {
+<<<<<<< Updated upstream
          Navigator.pushReplacement(
     context,
     MaterialPageRoute(builder: (context) => const LoginMenu()),
@@ -318,12 +382,44 @@ Future<void> logoutConRedireccionPorRol(BuildContext context) async {
     } catch (e) {
       print("⚠️ Error cerrando sesión: $e");
       Navigator.pushReplacement(
+=======
+        // Default fallback if role is not recognized or null
+        debugPrint(
+          "⚠️ Rol no reconocido o nulo al cerrar sesión. Redirigiendo a ChefWaiter.",
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Sesión cerrada. Rol no reconocido.")),
+        );
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const ChefWaiter()),
+          (Route<dynamic> route) => false, // Clears all previous routes
+        );
+      }
+    } catch (e) {
+      debugPrint("⚠️ Error cerrando sesión o obteniendo rol: $e");
+      // Fallback in case of any error during logout process
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Error al cerrar sesión. Intente de nuevo."),
+        ),
+      );
+      Navigator.pushAndRemoveUntil(
+>>>>>>> Stashed changes
         context,
         MaterialPageRoute(builder: (_) => const ChefWaiter()),
       );
     }
   } else {
+<<<<<<< Updated upstream
     Navigator.pushReplacement(
+=======
+    // If somehow user is null, still redirect to the main login/role selection
+    debugPrint(
+      "⚠️ Usuario nulo al intentar cerrar sesión. Redirigiendo a ChefWaiter.",
+    );
+    Navigator.pushAndRemoveUntil(
+>>>>>>> Stashed changes
       context,
       MaterialPageRoute(builder: (_) => const ChefWaiter()),
     );
