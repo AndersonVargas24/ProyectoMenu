@@ -7,15 +7,6 @@ import 'package:printing/printing.dart';
 import 'package:flutter/services.dart' show rootBundle;
 import 'package:menu/dashboardChef/VistaDia.dart';
 
-<<<<<<< Updated upstream
-=======
-// Tema de colores elegantes e innovadores
-const Color kPrimaryColor = Color.fromARGB(255, 5, 118, 211);
-const Color kAccentColor = Color.fromARGB(255, 25, 118, 210);
-const Color kBackgroundColor = Color.fromARGB(255, 227, 227, 227);
-const Color kErrorColor = Color(0xFFE57373);
-const Color kTextPrimary = Color(0xFF263238);
->>>>>>> Stashed changes
 
 class HistorialInventarioScreen extends StatefulWidget {
   const HistorialInventarioScreen({super.key});
