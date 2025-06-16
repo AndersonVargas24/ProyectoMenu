@@ -84,7 +84,7 @@ class _SeccionMenuState extends State<MenuChef> {
                     foregroundColor: _filtro == 'Plato' ? Colors.white : Colors.black,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   ),
-                  child: const Text('PLATILLOS'),
+                  child: const Text('PLATOS'),
                 ),
                 ElevatedButton(
                   onPressed: () {

@@ -17,6 +17,10 @@ class ComandaUsuario extends StatelessWidget {
       return _buildNotAuthenticated(context);
     }
 
+    // DEBUG: Imprimir información del usuario
+    print('Usuario actual: ${currentUser!.uid}');
+    print('Email: ${currentUser!.email}');
+
     return Scaffold(
       backgroundColor: Colors.blue[50],
       appBar: AppBar(
@@ -72,16 +76,33 @@ class ComandaUsuario extends StatelessWidget {
         ],
       ),
       body: StreamBuilder<QuerySnapshot>(
-        // MODIFICACIÓN PRINCIPAL: Filtrar por usuario específico
+        // La consulta de StreamBuilder ya estaba bien, apuntando a la subcolección 'comandas'
         stream: FirebaseFirestore.instance
-            .collection('comandas')
-            .where('usuario_creador_uid', isEqualTo: currentUser!.uid) // Solo comandas del usuario actual
-            .where('estado', whereIn: ['pendiente', 'preparando', 'listo']) // Estados activos
+            .collection('ComandaUsuario')
+            .doc(currentUser!.uid)
+            .collection('comandas') 
             .orderBy('fecha_creacion', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
+          // DEBUG: Agregar más información de debug
+          print('ConnectionState: ${snapshot.connectionState}');
+          print('HasError: ${snapshot.hasError}');
           if (snapshot.hasError) {
-            return _buildError();
+            print('Error: ${snapshot.error}');
+          }
+          print('HasData: ${snapshot.hasData}');
+          if (snapshot.hasData) {
+            print('Docs count: ${snapshot.data!.docs.length}');
+            // Imprimir cada documento para debug
+            for (var doc in snapshot.data!.docs) {
+              print('Doc ID: ${doc.id}');
+              print('Doc data: ${doc.data()}');
+            }
+          }
+
+          if (snapshot.hasError) {
+            print('Error en stream: ${snapshot.error}');
+            return _buildError(snapshot.error.toString());
           }
 
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -92,38 +113,82 @@ class ComandaUsuario extends StatelessWidget {
             return _buildEmpty(context);
           }
 
+          // Filtrar manualmente por estado si es necesario
+          List<DocumentSnapshot> filteredDocs = snapshot.data!.docs.where((doc) {
+            Map<String, dynamic> data = doc.data()! as Map<String, dynamic>;
+            String estado = data['estado'] ?? '';
+            // Mostrar solo las comandas con estados específicos (descomentar si es necesario)
+            return ['pendiente', 'preparando', 'listo'].contains(estado); 
+          }).toList();
+
+          // Ordenar manualmente por fecha (si ya se usa orderBy en el stream, esto es redundante pero no causa daño)
+          filteredDocs.sort((a, b) {
+            Map<String, dynamic> dataA = a.data()! as Map<String, dynamic>;
+            Map<String, dynamic> dataB = b.data()! as Map<String, dynamic>;
+            
+            Timestamp? timestampA = dataA['fecha_creacion'] as Timestamp?;
+            Timestamp? timestampB = dataB['fecha_creacion'] as Timestamp?;
+            
+            if (timestampA == null && timestampB == null) return 0;
+            if (timestampA == null) return 1;
+            if (timestampB == null) return -1;
+            
+            return timestampB.compareTo(timestampA); // Descendente
+          });
+
+          if (filteredDocs.isEmpty) {
+            return _buildEmpty(context);
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16.0),
-            itemCount: snapshot.data!.docs.length,
+            itemCount: filteredDocs.length,
             itemBuilder: (context, index) {
-              DocumentSnapshot document = snapshot.data!.docs[index];
+              DocumentSnapshot document = filteredDocs[index];
               Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
 
               List<dynamic> items = data['items'] ?? [];
-              DateTime fechaCreacion = (data['fecha_creacion'] as Timestamp).toDate();
+              
+              DateTime fechaCreacion;
+              if (data['fecha_creacion'] != null) {
+                fechaCreacion = (data['fecha_creacion'] as Timestamp).toDate();
+              } else {
+                fechaCreacion = DateTime.now(); // Fecha por defecto
+              }
+              
               final formattedDate = DateFormat('dd/MM/yyyy HH:mm').format(fechaCreacion);
               final numeroComanda = data['numeroComanda'] ?? 0;
               final nombreComanda = data['nombreComanda'] ?? 'Comanda #$numeroComanda';
               final comentario = data['comentario'] ?? '';
-              final metodoPago = data['metodoPago'] ?? 'No especificado'; // Obtener el método de pago
-              final estadoPago = data['estadoPago'] ?? 'pendiente'; // Obtener el estado de pago
-              double totalComanda = items.fold(0.0, (sum, item) => sum + (item['precio'] * item['cantidad']));
-              final horaEntrega = data['horaEntrega'] ?? ''; // Obtener la hora de entrega
+              final metodoPago = data['metodoPago'] ?? 'No especificado';
+              final estadoPago = data['estadoPago'] ?? 'pendiente';
+              final estado = data['estado'] ?? 'pendiente';
+              
+              double totalComanda = 0.0;
+              for (var item in items) {
+                if (item is Map<String, dynamic>) {
+                  double precio = (item['precio'] ?? 0).toDouble();
+                  int cantidad = (item['cantidad'] ?? 0).toInt();
+                  totalComanda += precio * cantidad;
+                }
+              }
+              
+              final horaEntrega = data['horaEntrega'] ?? '';
 
               return _ComandaCard(
                 documentId: document.id,
                 formattedDate: formattedDate,
                 items: items,
-                estado: data['estado'],
+                estado: estado,
                 totalComanda: totalComanda,
                 numeroComanda: numeroComanda,
                 nombreComanda: nombreComanda,
                 comentario: comentario,
-                metodoPago: metodoPago, // Pasar el método de pago
-                estadoPago: estadoPago, // Pasar el estado de pago
+                metodoPago: metodoPago,
+                estadoPago: estadoPago,
                 comandaData: data,
                 currentUserId: currentUser!.uid,
-                horaEntrega: horaEntrega, // Pasar la hora de entrega
+                horaEntrega: horaEntrega,
               );
             },
           );
@@ -180,7 +245,7 @@ class ComandaUsuario extends StatelessWidget {
     );
   }
 
-  Widget _buildError() {
+  Widget _buildError(String error) {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -192,9 +257,18 @@ class ComandaUsuario extends StatelessWidget {
             style: TextStyle(fontSize: 18, color: Colors.red[400]),
           ),
           const SizedBox(height: 10),
+          // Mostrar error específico para debug
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Text(
+              'Error: $error',
+              style: TextStyle(fontSize: 12, color: Colors.red[300]),
+              textAlign: TextAlign.center,
+            ),
+          ),
           ElevatedButton(
             onPressed: () {
-              // Recargar la página
+              // TODO: Implementar recarga
             },
             child: const Text('Reintentar'),
           ),
@@ -256,12 +330,61 @@ class ComandaUsuario extends StatelessWidget {
             icon: const Icon(Icons.restaurant_menu),
             label: const Text('Ver Menú', style: TextStyle(fontSize: 16)),
           ),
+          const SizedBox(height: 20),
+          // Botón de debug para verificar conexión
+          ElevatedButton(
+            onPressed: () {
+              _testFirebaseConnection();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.orange[600],
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Test Conexión Firebase'),
+          ),
         ],
       ),
     );
   }
+
+  // Método para probar la conexión
+  void _testFirebaseConnection() async {
+    try {
+      print('Probando conexión a Firebase...');
+      
+      // Verificar usuario actual
+      User? user = FirebaseAuth.instance.currentUser;
+      print('Usuario autenticado: ${user?.uid}');
+      
+      // Verificar colección principal ComandaUsuario
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('ComandaUsuario')
+          .limit(1)
+          .get();
+      
+      print('Colección "ComandaUsuario" accesible: ${snapshot.docs.length} documentos encontrados directamente (posiblemente documentos de UID)');
+      
+      // Si el usuario está autenticado, intentar acceder a su subcolección 'comandas'
+      if (user?.uid != null) {
+        QuerySnapshot userComandasSnapshot = await FirebaseFirestore.instance
+            .collection('ComandaUsuario')
+            .doc(user!.uid)
+            .collection('comandas')
+            .limit(5) // Limitar para no leer demasiados
+            .get();
+        print('Subcolección "comandas" para UID ${user.uid} accesible: ${userComandasSnapshot.docs.length} documentos encontrados.');
+        for (var doc in userComandasSnapshot.docs) {
+          print('  - Comanda ID: ${doc.id}, Data: ${doc.data()}');
+        }
+      }
+      
+    } catch (e) {
+      print('Error en test de conexión: $e');
+    }
+  }
 }
 
+// La clase _ComandaCard
 class _ComandaCard extends StatelessWidget {
   final String documentId;
   final String formattedDate;
@@ -273,9 +396,9 @@ class _ComandaCard extends StatelessWidget {
   final String comentario;
   final String metodoPago;
   final String estadoPago;
-  final String horaEntrega; // Ahora es una propiedad requerida
+  final String horaEntrega;
   final Map<String, dynamic> comandaData;
-  final String currentUserId;
+  final String currentUserId; // <-- Necesitamos pasar el UID del usuario aquí
 
   _ComandaCard({
     required this.documentId,
@@ -286,11 +409,11 @@ class _ComandaCard extends StatelessWidget {
     required this.numeroComanda,
     required this.nombreComanda,
     required this.comentario,
-    required this.metodoPago, // Ahora es requerida
-    required this.estadoPago, // Ahora es requerida
+    required this.metodoPago,
+    required this.estadoPago,
     required this.comandaData,
-    required this.currentUserId,
-    required this.horaEntrega, // Ahora es requerida
+    required this.currentUserId, // <-- Añadir currentUserId al constructor
+    required this.horaEntrega,
   });
 
   void _cancelarComanda(BuildContext context) {
@@ -342,10 +465,12 @@ class _ComandaCard extends StatelessWidget {
             ),
             child: const Text('Sí, cancelar'),
             onPressed: () {
-              // Cambiar estado a cancelado en lugar de eliminar
+              // CORRECCIÓN CLAVE: Usar la ruta completa para la subcolección
               FirebaseFirestore.instance
-                  .collection('comandas')
-                  .doc(documentId)
+                  .collection('ComandaUsuario')
+                  .doc(currentUserId) // UID del usuario
+                  .collection('comandas') // Nombre de la subcolección
+                  .doc(documentId) // ID del documento de la comanda
                   .update({
                 'estado': 'cancelado',
                 'fecha_cancelacion': FieldValue.serverTimestamp(),
@@ -645,6 +770,32 @@ class _ComandaCard extends StatelessWidget {
       ],
     );
   }
+  
+  // Mueve esta función aquí, dentro de la clase _ComandaCard
+  Widget _buildInfoSection(String title, List<String> items) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          const SizedBox(height: 8),
+          ...items.map((item) => Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Text('• $item'),
+          )).toList(),
+        ],
+      ),
+    );
+  }
 
   void _mostrarDetallesCompletos(BuildContext context) {
     showModalBottomSheet(
@@ -710,31 +861,6 @@ class _ComandaCard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoSection(String title, List<String> items) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-          ),
-          const SizedBox(height: 8),
-          ...items.map((item) => Padding(
-            padding: const EdgeInsets.only(bottom: 4),
-            child: Text('• $item'),
-          )).toList(),
-        ],
       ),
     );
   }

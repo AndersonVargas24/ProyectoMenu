@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -22,17 +23,20 @@ class _MenuUsuarioState extends State<MenuUsuario> {
   String _comentario = '';
   String _nombreComanda = '';
   final TextEditingController _nombreComandaController = TextEditingController();
-  final TextEditingController _comentarioController = TextEditingController(); // Nuevo controlador para el comentario
+  final TextEditingController _comentarioController = TextEditingController();
 
   // Variables para manejar la edición
   bool _esModoEdicion = false;
   String? _comandaIdParaEditar;
 
   // Nueva variable para el método de pago
-  String? _metodoPagoSeleccionado; // Variable para almacenar el método de pago
+  String? _metodoPagoSeleccionado;
 
   // Variable para almacenar la hora de entrega
   String? _horaEntrega;
+
+  // Variable para obtener el UID del usuario actual
+  String? get _currentUserUid => FirebaseAuth.instance.currentUser?.uid;
 
   @override
   void initState() {
@@ -44,8 +48,19 @@ class _MenuUsuarioState extends State<MenuUsuario> {
   @override
   void dispose() {
     _nombreComandaController.dispose();
-    _comentarioController.dispose(); // Disponer el controlador del comentario
+    _comentarioController.dispose();
     super.dispose();
+  }
+
+  // Método para obtener la referencia de la colección de comandas del usuario actual
+  CollectionReference _getComandasCollection() {
+    if (_currentUserUid == null) {
+      throw Exception('Usuario no autenticado');
+    }
+    return FirebaseFirestore.instance
+        .collection('ComandaUsuario')
+        .doc(_currentUserUid)
+        .collection('comandas');
   }
 
   Future<void> _inicializarComanda() async {
@@ -59,12 +74,12 @@ class _MenuUsuarioState extends State<MenuUsuario> {
         _nombreComanda = widget.comandaParaEditar!['nombreComanda'] ?? 'Comanda #$_siguienteNumeroComanda';
         _nombreComandaController.text = _nombreComanda;
         _comentario = widget.comandaParaEditar!['comentario'] ?? '';
-        _comentarioController.text = _comentario; // Cargar el comentario existente
+        _comentarioController.text = _comentario;
 
         // Cargar la hora de entrega si existe
         _horaEntrega = widget.comandaParaEditar!['horaEntrega'];
         // Cargar el método de pago si existe
-        _metodoPagoSeleccionado = widget.comandaParaEditar!['metodoPago']; // Cargar el método de pago existente
+        _metodoPagoSeleccionado = widget.comandaParaEditar!['metodoPago'];
       });
 
       // Cargar los items existentes
@@ -75,7 +90,7 @@ class _MenuUsuarioState extends State<MenuUsuario> {
                   'precio': item['precio'],
                   'cantidad': item['cantidad'],
                   'id': item['producto_id'],
-                  'tipo': item['tipo'] ?? 'Plato', // Valor por defecto si no existe
+                  'tipo': item['tipo'] ?? 'Plato',
                   'descripcion': item['descripcion'] ?? '',
                   'imagen': item['imagen'] ?? '',
                 }));
@@ -94,23 +109,27 @@ class _MenuUsuarioState extends State<MenuUsuario> {
       // Inicializar hora de entrega como null (mostrará "Ahora")
       setState(() {
         _horaEntrega = null;
-        _metodoPagoSeleccionado = null; // Inicializar método de pago como null
+        _metodoPagoSeleccionado = null;
       });
     }
   }
 
   Future<void> _cargarUltimoNumeroComanda() async {
-    final snapshot = await FirebaseFirestore.instance
-        .collection('comandas')
-        .orderBy('numeroComanda', descending: true)
-        .limit(1)
-        .get();
+    try {
+      final snapshot = await _getComandasCollection()
+          .orderBy('numeroComanda', descending: true)
+          .limit(1)
+          .get();
 
-    if (snapshot.docs.isNotEmpty) {
-      final last = snapshot.docs.first.data();
-      if (last.containsKey('numeroComanda') && last['numeroComanda'] is int) {
-        setState(() => _siguienteNumeroComanda = last['numeroComanda'] + 1);
+      if (snapshot.docs.isNotEmpty) {
+        final last = snapshot.docs.first.data() as Map<String, dynamic>;
+        if (last.containsKey('numeroComanda') && last['numeroComanda'] is int) {
+          setState(() => _siguienteNumeroComanda = last['numeroComanda'] + 1);
+        }
       }
+    } catch (e) {
+      debugPrint('Error al cargar último número de comanda: $e');
+      // Si hay error, mantener el valor por defecto
     }
 
     setState(() {
@@ -297,7 +316,6 @@ class _MenuUsuarioState extends State<MenuUsuario> {
       }
     } catch (e) {
       debugPrint('Error al seleccionar hora: $e');
-      // Mostrar mensaje de error opcional
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -331,6 +349,18 @@ class _MenuUsuarioState extends State<MenuUsuario> {
       return;
     }
 
+    if (_currentUserUid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Error: Usuario no autenticado'),
+            backgroundColor: Colors.red[400],
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(10),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ));
+      return;
+    }
+
     try {
       final user = FirebaseAuth.instance.currentUser;
       final username = await _getUsername(user?.uid);
@@ -340,10 +370,9 @@ class _MenuUsuarioState extends State<MenuUsuario> {
         'nombreComanda': _nombreComanda,
         'horaEntrega': _horaEntrega,
         'metodoPago': _metodoPagoSeleccionado,
-        // **IMPORTANTE: Inicializar estadoPago a 'pendiente' para nuevas comandas**
         'estadoPago': _esModoEdicion && widget.comandaParaEditar!['estadoPago'] != null
-            ? widget.comandaParaEditar!['estadoPago'] // Mantener el estado de pago existente en edición
-            : 'pendiente', // Por defecto 'pendiente' para nuevas comandas
+            ? widget.comandaParaEditar!['estadoPago']
+            : 'pendiente',
         'items': _itemsComanda.map((item) => {
               'nombre': item['nombre'],
               'precio': item['precio'],
@@ -372,9 +401,8 @@ class _MenuUsuarioState extends State<MenuUsuario> {
       };
 
       if (_esModoEdicion && _comandaIdParaEditar != null) {
-        // Actualizar comanda existente
-        await FirebaseFirestore.instance
-            .collection('comandas')
+        // Actualizar comanda existente en la colección personal del usuario
+        await _getComandasCollection()
             .doc(_comandaIdParaEditar)
             .update(comandaData);
 
@@ -387,8 +415,8 @@ class _MenuUsuarioState extends State<MenuUsuario> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ));
       } else {
-        // Crear nueva comanda
-        await FirebaseFirestore.instance.collection('comandas').add(comandaData);
+        // Crear nueva comanda en la colección personal del usuario
+        await _getComandasCollection().add(comandaData);
 
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -399,13 +427,14 @@ class _MenuUsuarioState extends State<MenuUsuario> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ));
       }
+      
       // Limpiar la comanda después de guardar
       setState(() {
         _itemsComanda.clear();
         _comentario = '';
-        _comentarioController.clear(); // Limpiar el campo de comentario
-        _horaEntrega = null; // Resetear hora de entrega
-        _metodoPagoSeleccionado = null; // Resetear método de pago
+        _comentarioController.clear();
+        _horaEntrega = null;
+        _metodoPagoSeleccionado = null;
         if (!_esModoEdicion) {
           _siguienteNumeroComanda++;
           _nombreComanda = 'Comanda #$_siguienteNumeroComanda';
@@ -469,7 +498,7 @@ class _MenuUsuarioState extends State<MenuUsuario> {
           ),
         ),
         leading: null,
-        automaticallyImplyLeading: false, // esto quita la flecha por completo
+        automaticallyImplyLeading: false,
         actions: const [],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(60.0),
