@@ -31,7 +31,7 @@ class ComandasView extends StatelessWidget {
       body: StreamBuilder<QuerySnapshot>(
         stream: FirebaseFirestore.instance
             .collection('comandas')
-            .where('estado', isEqualTo: 'pendiente')
+            .where('estado', whereIn: ['pendiente', 'preparando', 'listo'])
             .orderBy('numeroComanda', descending: true)
             .snapshots(),
         builder: (BuildContext context, AsyncSnapshot<QuerySnapshot> snapshot) {
@@ -211,6 +211,70 @@ class _ComandaCard extends StatelessWidget {
     );
   }
 
+// Método para marcar como entregado (agregar dentro de la clase _ComandaCard)
+void _marcarComoEntregado(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Confirmar entrega', 
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.green)),
+        content: const Text('¿Confirmas que esta comanda ha sido entregada?'),
+        actions: [
+          TextButton(
+            child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Entregado'),
+            onPressed: () {
+              // Actualizar el estado en Firestore
+              FirebaseFirestore.instance
+                  .collection('comandas')
+                  .doc(documentId)
+                  .update({
+                'estado': 'entregado',
+                'fecha_entrega': FieldValue.serverTimestamp(),
+              })
+                  .then((_) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: const Text('Comanda marcada como entregada'),
+                    backgroundColor: Colors.green[600],
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    margin: const EdgeInsets.all(10),
+                  ),
+                );
+                Navigator.of(context).pop();
+              }).catchError((error) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Error al actualizar: $error'),
+                    backgroundColor: Colors.red[600],
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    margin: const EdgeInsets.all(10),
+                  ),
+                );
+                Navigator.of(context).pop();
+              });
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -276,7 +340,8 @@ class _ComandaCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8.0),
-                    // NUEVA SECCIÓN PARA HORA DE ENTREGA
+
+                    //HORA DE ENTREGA
                     if (horaEntrega != null && horaEntrega.isNotEmpty) ...[
                       Row(
                         children: [
@@ -415,58 +480,76 @@ class _ComandaCard extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 20.0),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.delete_outline, size: 20),
-                    label: const Text('Eliminar', style: TextStyle(fontSize: 15)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red[400],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      elevation: 2,
-                    ),
-                    onPressed: () => _eliminarComanda(context),
-                  ),
-                  ElevatedButton.icon(
-                    icon: const Icon(Icons.edit_outlined, size: 20),
-                    label: const Text('Editar', style: TextStyle(fontSize: 15)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                      elevation: 2,
-                    ),
-                    onPressed: () {
-                      // Navegar a SeccionMenu pasando la información de la comanda
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => SeccionMenu(
-                            comandaParaEditar: {
-                              'id': documentId,
-                              'numeroComanda': numeroComanda,
-                              'nombreComanda': nombreComanda,
-                              'horaEntrega': horaEntrega, // AGREGAR ESTE CAMPO
-                              'items': items,
-                              'comentario': comentario,
-                              'estado': estado,
-                              'usuario_creador_nombre': nombreMesero,
-                              'fecha_creacion': comandaData['fecha_creacion'],
-                              'total': totalComanda,
-                              // Puedes agregar más campos si los necesitas
-                            },
-                          ),
-                        ),
-                      );
-                      print('Navegar a SeccionMenu para editar comanda con ID: $documentId');
-                    },
-                  ),
-                ],
+Row(
+  children: [
+    Expanded(
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.check_circle_outline, size: 18),
+        label: const Text('Entregado', style: TextStyle(fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.green[600],
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          elevation: 2,
+        ),
+        onPressed: () => _marcarComoEntregado(context),
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.delete_outline, size: 18),
+        label: const Text('Eliminar', style: TextStyle(fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red[400],
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          elevation: 2,
+        ),
+        onPressed: () => _eliminarComanda(context),
+      ),
+    ),
+    const SizedBox(width: 8),
+    Expanded(
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.edit_outlined, size: 18),
+        label: const Text('Editar', style: TextStyle(fontSize: 13)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.blue[600],
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          elevation: 2,
+        ),
+        onPressed: () {
+          // Navegar a SeccionMenu pasando la información de la comanda
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SeccionMenu(
+                comandaParaEditar: {
+                  'id': documentId,
+                  'numeroComanda': numeroComanda,
+                  'nombreComanda': nombreComanda,
+                  'horaEntrega': horaEntrega,
+                  'items': items,
+                  'comentario': comentario,
+                  'estado': estado,
+                  'usuario_creador_nombre': nombreMesero,
+                  'fecha_creacion': comandaData['fecha_creacion'],
+                  'total': totalComanda,
+                },
               ),
+            ),
+          );
+          print('Navegar a SeccionMenu para editar comanda con ID: $documentId');
+        },
+      ),
+    ),
+  ],
+),
             ],
           ),
         ),

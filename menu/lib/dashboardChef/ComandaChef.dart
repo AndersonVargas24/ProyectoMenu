@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart'; // Para formatear fechas
-import 'package:menu/WaiterDashboard/SeccionMenu.dart'; // Importa la pantalla SeccionMenu
+import 'package:menu/WaiterDashboard/SeccionMenu.dart'; 
 
 
 class Comandachef extends StatelessWidget {
@@ -10,7 +10,7 @@ class Comandachef extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.blue[50], // Fondo azul muy suave para el tema minimalista
+      backgroundColor: Colors.blue[50], 
       appBar: AppBar(
         title: const Text(
           'Comandas Pendientes y en Preparación',
@@ -136,7 +136,7 @@ class _ComandaCard extends StatelessWidget {
   final String comentario;
   final String horaEntrega;
   
-  final Map<String, dynamic> comandaData; // Agregamos toda la data de la comanda
+  final Map<String, dynamic> comandaData; // Agregamos toda la de la comanda
 
   _ComandaCard({
     required this.documentId,
@@ -338,7 +338,7 @@ class _ComandaCard extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 8.0),
-                    // NUEVA SECCIÓN PARA HORA DE ENTREGA
+
                     if (horaEntrega.isNotEmpty) ...[
                       Row(
                         children: [
@@ -444,7 +444,7 @@ class _ComandaCard extends StatelessWidget {
                               style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.blue[700]),
                             ),
                           ),
-                          // PRECIO ELIMINADO - No se muestra en la vista del chef
+
                         ],
                       ),
                     );
@@ -452,7 +452,7 @@ class _ComandaCard extends StatelessWidget {
                 ),
               ),
               const Divider(height: 30, thickness: 1),
-              // TOTAL ELIMINADO - No se muestra en la vista del chef
+
               const SizedBox(height: 20.0),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -503,4 +503,3 @@ class _ComandaCard extends StatelessWidget {
     }
   }
 }
-//mesero@gmail.com
